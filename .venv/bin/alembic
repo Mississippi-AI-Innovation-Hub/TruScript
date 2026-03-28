@@ -1,0 +1,8 @@
+#!/bin/sh
+'''exec' "/Users/hustler/Desktop/MSU/Graduate/Spring-2026/AWS Innovation Hub/msbn-poc/msbn_transcript_api/.venv/bin/python" "$0" "$@"
+' '''
+import sys
+from alembic.config import main
+if __name__ == '__main__':
+    sys.argv[0] = sys.argv[0].removesuffix('.exe')
+    sys.exit(main())

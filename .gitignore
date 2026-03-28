@@ -1,0 +1,42 @@
+# Byte-compiled / optimized / compressed files
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+*.mo
+*.class
+*.dll
+*.so
+
+# Virtual environment
+venv/
+env/
+.venv/
+.env/
+
+# Build artifacts
+build/
+dist/
+wheels/
+share/man/
+local/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-line.txt
+htmlcov/
+.tox/
+.coverage
+.pytest_cache/
+.mypy_cache/
+
+# IDE-specific files and folders
+.idea/ # For PyCharm
+.vscode/ # For VS Code (consider only ignoring user settings if sharing workspace settings)
+*.swp
+*.bak
+*.pyc
+
+# OS-specific files
+.DS_Store # macOS
+Thumbs.db # Windows
