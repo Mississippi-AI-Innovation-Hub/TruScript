@@ -1,0 +1,99 @@
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: msbn_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: msbn_poc
+      POSTGRES_USER: msbn_user
+      POSTGRES_PASSWORD: msbn_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U msbn_user -d msbn_poc"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Keycloak ────────────────────────────────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: msbn_keycloak
+    restart: unless-stopped
+    # keycloak-init.sh: starts KC in background, patches master realm
+    # sslRequired→none (must run from 127.0.0.1 inside the container),
+    # then foregrounds KC.
+    entrypoint: ["/opt/keycloak/data/import/keycloak-init.sh"]
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
+      KC_LOG_LEVEL: INFO
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+    ports:
+      - "8080:8080"
+    healthcheck:
+      # curl is not in the Keycloak image — use bash /dev/tcp to check port
+      # then verify the msbn realm endpoint returns HTTP 200 via /proc/net/tcp
+      # Simple port-open check is sufficient: KC won't serve if not ready.
+      test: ["CMD-SHELL", "(echo > /dev/tcp/127.0.0.1/8080) 2>/dev/null && exit 0 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  # ── Keycloak user provisioner (one-shot, runs after Keycloak is healthy) ────
+  # Keycloak 24 silently drops plain-text credential values in realm JSON
+  # imports. This sidecar sets passwords via the admin REST API once KC is up.
+  init-keycloak:
+    image: curlimages/curl:8.7.1
+    container_name: msbn_keycloak_init
+    restart: "no"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    volumes:
+      - ./keycloak:/scripts:ro
+    entrypoint: ["/bin/sh", "/scripts/provision-users.sh"]
+
+  # ── MSBN Transcript API ─────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: msbn_api
+    restart: unless-stopped
+    environment:
+      APP_ENV: development
+      DEBUG: "true"
+      SECRET_KEY: dev-secret-key-change-in-production-use-32c
+      DATABASE_URL: postgresql+asyncpg://msbn_user:msbn_pass@postgres:5432/msbn_poc
+      DATABASE_SYNC_URL: postgresql+psycopg2://msbn_user:msbn_pass@postgres:5432/msbn_poc
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: msbn
+      KEYCLOAK_CLIENT_ID: msbn-api
+      KEYCLOAK_CLIENT_SECRET: msbn-api-secret-change-in-prod
+      ALLOWED_ORIGINS: '["http://localhost:3000","http://localhost:8000", "http://localhost:5173"]'
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads:/tmp/msbn_uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  uploads:

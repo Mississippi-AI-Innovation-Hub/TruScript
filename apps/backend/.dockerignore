@@ -1,0 +1,17 @@
+.git
+.venv
+venv
+env
+__pycache__
+*.py[cod]
+*.egg-info
+.env
+.env.*
+!.env.example
+.coverage
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.DS_Store
+uploads/
+keycloak/data/

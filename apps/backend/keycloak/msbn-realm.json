@@ -1,0 +1,80 @@
+{
+  "realm": "msbn",
+  "enabled": true,
+  "displayName": "MSBN Transcript Verification",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 3600,
+  "clients": [
+    {
+      "clientId": "msbn-api",
+      "name": "MSBN Transcript API",
+      "description": "Backend service client for the MSBN Transcript Verification API",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "msbn-api-secret-change-in-prod",
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "authorizationServicesEnabled": false,
+      "protocol": "openid-connect",
+      "redirectUris": ["*"],
+      "webOrigins": ["*"],
+      "attributes": {
+        "access.token.lifespan": "3600"
+      }
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "msbn-staff",
+        "description": "MSBN staff reviewer — can submit, view, and review transcripts"
+      },
+      {
+        "name": "msbn-admin",
+        "description": "MSBN administrator — full access including transcript deletion"
+      }
+    ]
+  },
+  "users": [
+    {
+      "username": "staff_user",
+      "email": "staff@msbn.gov",
+      "firstName": "Staff",
+      "lastName": "User",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "StaffPass1!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["msbn-staff"]
+    },
+    {
+      "username": "admin_user",
+      "email": "admin@msbn.gov",
+      "firstName": "Admin",
+      "lastName": "User",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "AdminPass1!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["msbn-staff", "msbn-admin"]
+    }
+  ]
+}
