@@ -14,6 +14,11 @@ env/
 .venv/
 .env/
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+
 # Build artifacts
 build/
 dist/
@@ -30,13 +35,25 @@ htmlcov/
 .pytest_cache/
 .mypy_cache/
 
+# Node
+node_modules/
+.npm/
+
 # IDE-specific files and folders
-.idea/ # For PyCharm
-.vscode/ # For VS Code (consider only ignoring user settings if sharing workspace settings)
+.idea/
+.vscode/
 *.swp
 *.bak
 *.pyc
 
 # OS-specific files
-.DS_Store # macOS
-Thumbs.db # Windows
+.DS_Store
+*.DS_Store
+Thumbs.db
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+!*.tfvars.example

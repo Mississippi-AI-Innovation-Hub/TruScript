@@ -1,0 +1,5 @@
+on:
+  push:
+    paths:
+      - 'apps/frontend/**'
+      - 'infrastructure/frontend/**'
