@@ -499,7 +499,7 @@ module "api_service" {
     { name = "LAMBDA_TEXTRACT_ARN",      value = module.textract_lambda.function_arn },
     { name = "LAMBDA_FRAUD_ARN",         value = module.fraud_analyzer_lambda.function_arn },
     { name = "LAMBDA_REKOGNITION_ARN",   value = module.rekognition_lambda.function_arn },
-    { name = "ALLOWED_ORIGINS",          value = var.allowed_origins },
+    { name = "ALLOWED_ORIGINS",          value = jsonencode(split(",", var.allowed_origins)) },
   ]
 
   secrets = [
