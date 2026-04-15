@@ -3,6 +3,11 @@ variable "aws_region" {
   description = "AWS region"
 }
 
+variable "aws_profile" {
+  type        = string
+  description = "AWS CLI profile name to use for authentication"
+}
+
 variable "aws_account_id" {
   type        = string
   description = "12-digit AWS account ID — used for globally unique S3 bucket name"
