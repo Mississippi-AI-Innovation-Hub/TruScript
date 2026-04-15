@@ -1,18 +1,23 @@
-# Copy this file to terraform.tfvars and fill in all TODO values.
-# terraform.tfvars is gitignored — never commit real secrets.
+# ============================================================
+# HOW TO USE THIS FILE
+# ============================================================
+# 1. Copy to terraform.tfvars:
+#      cp terraform.tfvars.example terraform.tfvars
 #
-# Usage:
-#   cd infrastructure/backend
-#   terraform init
-#   terraform apply -var-file="../environments/dev/terraform.tfvars"
+# 2. Replace every  TODO: ...  value below
 #
-#   cd infrastructure/frontend
-#   terraform init
-#   terraform apply -var-file="../environments/dev/terraform.tfvars"
+# 3. This file is gitignored — your real values stay local
+# ============================================================
 
 # ── AWS ──────────────────────────────────────────────────────────────────────
-aws_region     = "us-east-1"
-aws_account_id = "TODO: 123456789012"   # Your 12-digit AWS account ID
+# Get from: AWS Console top-right dropdown
+aws_region = "us-east-1"
+
+# Get from: AWS Console top-right corner (12-digit number)
+aws_account_id = "TODO: 123456789012"
+
+# AWS CLI profile name — run "aws configure list-profiles" to see yours
+aws_profile = "msaih_IsbAdminsPS"
 
 # ── Environment ───────────────────────────────────────────────────────────────
 env = "dev"
@@ -23,20 +28,28 @@ vpc_cidr = "10.0.0.0/16"
 # ── Database ──────────────────────────────────────────────────────────────────
 db_name           = "msbn_db"
 db_username       = "msbn_user"
-db_password       = "TODO: replace-with-strong-password-min-16-chars"
+
+# Make this strong — min 16 chars, mix of letters/numbers/symbols
+db_password = "TODO: MyStr0ng!DBPass2026"
+
 db_instance_class = "db.t3.micro"
 
 # ── App Secrets ───────────────────────────────────────────────────────────────
-app_secret_key          = "TODO: replace-with-32-char-minimum-secret-key-here"
-keycloak_client_secret  = "TODO: replace-with-keycloak-client-secret"
-keycloak_admin_password = "TODO: replace-with-keycloak-admin-password"
+# Generate with: python3 -c "import secrets; print(secrets.token_hex(32))"
+app_secret_key = "TODO: paste-64-char-hex-string-here"
+
+# Get from: Keycloak Admin Console → Clients → msbn-api → Credentials
+keycloak_client_secret = "TODO: keycloak-client-secret-from-console"
+
+# Keycloak admin login password (you set this yourself)
+keycloak_admin_password = "TODO: Admin@MSBN2026!"
 
 # ── Container Images ──────────────────────────────────────────────────────────
-# After pushing to ECR, update these tags to deploy specific versions
+# These will be updated to real tags after first ECR push
 api_image_tag      = "latest"
 keycloak_image_tag = "latest"
 
-# ── ECS Sizing ────────────────────────────────────────────────────────────────
+# ── ECS Sizing (keep small for dev) ──────────────────────────────────────────
 api_cpu           = 512
 api_memory        = 1024
 api_desired_count = 1
@@ -44,8 +57,18 @@ keycloak_cpu      = 512
 keycloak_memory   = 1024
 
 # ── ML ────────────────────────────────────────────────────────────────────────
-# Haiku is cheaper for dev; use Sonnet/Claude 3.5 for prod
+# Claude Haiku is cheapest for dev testing
 bedrock_model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+
+# Leave empty until you train a Rekognition model (optional for Phase 1)
+rekognition_project_version_arn = ""
+
+# Leave empty on first apply — fill in AFTER terraform apply prints alb_dns_name
+# Example: "http://msbn-dev-alb-1234567890.us-east-1.elb.amazonaws.com"
+api_internal_url = ""
+
+# Generate with: python3 -c "import secrets; print(secrets.token_hex(32))"
+api_callback_secret = "TODO: paste-64-char-hex-string-here"
 
 # ── Misc ──────────────────────────────────────────────────────────────────────
 allowed_origins    = "http://localhost:5173,http://localhost:3000"

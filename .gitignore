@@ -57,3 +57,11 @@ Thumbs.db
 *.tfstate.backup
 *.tfvars
 !*.tfvars.example
+
+# ML training data — images are uploaded to S3, not committed to git
+ml-data/**/*.png
+ml-data/**/*.jpg
+ml-data/**/*.jpeg
+ml-data/**/*.tiff
+ml-data/**/*.tif
+ml-data/**/*.pdf

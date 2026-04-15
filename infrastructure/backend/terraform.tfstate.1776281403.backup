@@ -1,0 +1,4396 @@
+{
+  "version": 4,
+  "terraform_version": "1.14.8",
+  "serial": 87,
+  "lineage": "a33572ad-2235-6fac-7c95-94d95fbf3070",
+  "outputs": {
+    "alb_dns_name": {
+      "value": "msbn-dev-alb-2055778124.us-east-1.elb.amazonaws.com",
+      "type": "string"
+    },
+    "api_ecr_repository_url": {
+      "value": "526958953802.dkr.ecr.us-east-1.amazonaws.com/msbn-dev-api",
+      "type": "string"
+    },
+    "aws_region": {
+      "value": "us-east-1",
+      "type": "string"
+    },
+    "documents_bucket_name": {
+      "value": "msbn-dev-documents-526958953802",
+      "type": "string"
+    },
+    "fraud_analyzer_lambda_arn": {
+      "value": "arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-fraud-analyzer",
+      "type": "string"
+    },
+    "keycloak_ecr_repository_url": {
+      "value": "526958953802.dkr.ecr.us-east-1.amazonaws.com/msbn-dev-keycloak",
+      "type": "string"
+    },
+    "ml_data_bucket_name": {
+      "value": "msbn-dev-ml-data-526958953802",
+      "type": "string"
+    },
+    "pipeline_orchestrator_lambda_arn": {
+      "value": "arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-pipeline-orchestrator",
+      "type": "string"
+    },
+    "private_subnet_ids": {
+      "value": [
+        "subnet-0993ba19acbadc004",
+        "subnet-010f49219d6777d9f"
+      ],
+      "type": [
+        "tuple",
+        [
+          "string",
+          "string"
+        ]
+      ]
+    },
+    "rds_endpoint": {
+      "value": "msbn-dev-postgres.cm16aka82i8r.us-east-1.rds.amazonaws.com:5432",
+      "type": "string"
+    },
+    "rekognition_lambda_arn": {
+      "value": "arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-rekognition-checker",
+      "type": "string"
+    },
+    "rekognition_project_arn": {
+      "value": null,
+      "type": "string"
+    },
+    "rekognition_s3_role_arn": {
+      "value": "arn:aws:iam::526958953802:role/msbn-dev-rekognition-s3-role",
+      "type": "string"
+    },
+    "textract_lambda_arn": {
+      "value": "arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-textract-processor",
+      "type": "string"
+    },
+    "vpc_id": {
+      "value": "vpc-0d59fffaf195535ad",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "data",
+      "type": "aws_availability_zones",
+      "name": "available",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "all_availability_zones": null,
+            "exclude_names": null,
+            "exclude_zone_ids": null,
+            "filter": null,
+            "group_names": [
+              "us-east-1-zg-1"
+            ],
+            "id": "us-east-1",
+            "names": [
+              "us-east-1a",
+              "us-east-1b",
+              "us-east-1c",
+              "us-east-1d",
+              "us-east-1e",
+              "us-east-1f"
+            ],
+            "state": "available",
+            "timeouts": null,
+            "zone_ids": [
+              "use1-az1",
+              "use1-az2",
+              "use1-az4",
+              "use1-az6",
+              "use1-az3",
+              "use1-az5"
+            ]
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_cloudwatch_log_group",
+      "name": "api",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:logs:us-east-1:526958953802:log-group:/ecs/msbn-dev/api",
+            "id": "/ecs/msbn-dev/api",
+            "kms_key_id": "",
+            "log_group_class": "STANDARD",
+            "name": "/ecs/msbn-dev/api",
+            "name_prefix": "",
+            "retention_in_days": 7,
+            "skip_destroy": false,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_cloudwatch_log_group",
+      "name": "keycloak",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:logs:us-east-1:526958953802:log-group:/ecs/msbn-dev/keycloak",
+            "id": "/ecs/msbn-dev/keycloak",
+            "kms_key_id": "",
+            "log_group_class": "STANDARD",
+            "name": "/ecs/msbn-dev/keycloak",
+            "name_prefix": "",
+            "retention_in_days": 7,
+            "skip_destroy": false,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_cloudwatch_log_group",
+      "name": "pipeline_orchestrator",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:logs:us-east-1:526958953802:log-group:/aws/lambda/msbn-dev-pipeline-orchestrator",
+            "id": "/aws/lambda/msbn-dev-pipeline-orchestrator",
+            "kms_key_id": "",
+            "log_group_class": "STANDARD",
+            "name": "/aws/lambda/msbn-dev-pipeline-orchestrator",
+            "name_prefix": "",
+            "retention_in_days": 7,
+            "skip_destroy": false,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_ecr_lifecycle_policy",
+      "name": "api",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "msbn-dev-api",
+            "policy": "{\"rules\":[{\"action\":{\"type\":\"expire\"},\"description\":\"Keep last 10 images\",\"rulePriority\":1,\"selection\":{\"countNumber\":10,\"countType\":\"imageCountMoreThan\",\"tagStatus\":\"any\"}}]}",
+            "registry_id": "526958953802",
+            "repository": "msbn-dev-api"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_ecr_repository.api"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_ecr_repository",
+      "name": "api",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ecr:us-east-1:526958953802:repository/msbn-dev-api",
+            "encryption_configuration": [
+              {
+                "encryption_type": "AES256",
+                "kms_key": ""
+              }
+            ],
+            "force_delete": null,
+            "id": "msbn-dev-api",
+            "image_scanning_configuration": [
+              {
+                "scan_on_push": true
+              }
+            ],
+            "image_tag_mutability": "MUTABLE",
+            "name": "msbn-dev-api",
+            "registry_id": "526958953802",
+            "repository_url": "526958953802.dkr.ecr.us-east-1.amazonaws.com/msbn-dev-api",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiZGVsZXRlIjoxMjAwMDAwMDAwMDAwfX0="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_ecr_repository",
+      "name": "keycloak",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ecr:us-east-1:526958953802:repository/msbn-dev-keycloak",
+            "encryption_configuration": [
+              {
+                "encryption_type": "AES256",
+                "kms_key": ""
+              }
+            ],
+            "force_delete": null,
+            "id": "msbn-dev-keycloak",
+            "image_scanning_configuration": [
+              {
+                "scan_on_push": true
+              }
+            ],
+            "image_tag_mutability": "MUTABLE",
+            "name": "msbn-dev-keycloak",
+            "registry_id": "526958953802",
+            "repository_url": "526958953802.dkr.ecr.us-east-1.amazonaws.com/msbn-dev-keycloak",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiZGVsZXRlIjoxMjAwMDAwMDAwMDAwfX0="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_ecs_cluster",
+      "name": "main",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ecs:us-east-1:526958953802:cluster/msbn-dev-cluster",
+            "configuration": [],
+            "id": "arn:aws:ecs:us-east-1:526958953802:cluster/msbn-dev-cluster",
+            "name": "msbn-dev-cluster",
+            "service_connect_defaults": [],
+            "setting": [
+              {
+                "name": "containerInsights",
+                "value": "enabled"
+              }
+            ],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_eip",
+      "name": "nat",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "address": null,
+            "allocation_id": "eipalloc-0cffd7488fdc3cece",
+            "arn": "arn:aws:ec2:us-east-1:526958953802:elastic-ip/eipalloc-0cffd7488fdc3cece",
+            "associate_with_private_ip": null,
+            "association_id": "eipassoc-0475280b9bf605b14",
+            "carrier_ip": "",
+            "customer_owned_ip": "",
+            "customer_owned_ipv4_pool": "",
+            "domain": "vpc",
+            "id": "eipalloc-0cffd7488fdc3cece",
+            "instance": "",
+            "ipam_pool_id": null,
+            "network_border_group": "us-east-1",
+            "network_interface": "eni-09ad4911ff0232e0c",
+            "private_dns": "ip-10-0-11-17.ec2.internal",
+            "private_ip": "10.0.11.17",
+            "ptr_record": "",
+            "public_dns": "ec2-98-87-125-208.compute-1.amazonaws.com",
+            "public_ip": "98.87.125.208",
+            "public_ipv4_pool": "amazon",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-nat-eip",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-nat-eip",
+              "Project": "msbn"
+            },
+            "timeouts": null,
+            "vpc": true
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiZGVsZXRlIjoxODAwMDAwMDAwMDAsInJlYWQiOjkwMDAwMDAwMDAwMCwidXBkYXRlIjozMDAwMDAwMDAwMDB9fQ=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_iam_role",
+      "name": "api_task",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:iam::526958953802:role/msbn-dev-api-task-role",
+            "assume_role_policy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ecs-tasks.amazonaws.com\"}}],\"Version\":\"2012-10-17\"}",
+            "create_date": "2026-04-15T19:02:22Z",
+            "description": "",
+            "force_detach_policies": false,
+            "id": "msbn-dev-api-task-role",
+            "inline_policy": [
+              {
+                "name": "msbn-dev-api-invoke-pipeline",
+                "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"lambda:InvokeFunction\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-pipeline-orchestrator\"}]}"
+              },
+              {
+                "name": "msbn-dev-api-task-policy",
+                "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"s3:PutObject\",\"s3:GetObject\",\"s3:DeleteObject\",\"s3:ListBucket\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:s3:::msbn-dev-documents-526958953802\",\"arn:aws:s3:::msbn-dev-documents-526958953802/*\"],\"Sid\":\"S3Documents\"},{\"Action\":[\"lambda:InvokeFunction\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-textract-processor\",\"arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-fraud-analyzer\",\"arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-rekognition-checker\"],\"Sid\":\"InvokeLambdas\"},{\"Action\":[\"secretsmanager:GetSecretValue\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/db-password-Q5Uej0\",\"arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/app-secrets-d3NGp0\"],\"Sid\":\"ReadSecrets\"}]}"
+              }
+            ],
+            "managed_policy_arns": [],
+            "max_session_duration": 3600,
+            "name": "msbn-dev-api-task-role",
+            "name_prefix": "",
+            "path": "/",
+            "permissions_boundary": "",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "unique_id": "AROAXVMJTQVFDO37VOWV3"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_iam_role",
+      "name": "ecs_task_execution",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:iam::526958953802:role/msbn-dev-ecs-execution-role",
+            "assume_role_policy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ecs-tasks.amazonaws.com\"}}],\"Version\":\"2012-10-17\"}",
+            "create_date": "2026-04-15T19:02:22Z",
+            "description": "",
+            "force_detach_policies": false,
+            "id": "msbn-dev-ecs-execution-role",
+            "inline_policy": [
+              {
+                "name": "msbn-dev-ecs-execution-secrets",
+                "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"secretsmanager:GetSecretValue\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/db-password-Q5Uej0\",\"arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/app-secrets-d3NGp0\",\"arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/keycloak-admin-password-dt9BXG\"]}]}"
+              }
+            ],
+            "managed_policy_arns": [
+              "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+            ],
+            "max_session_duration": 3600,
+            "name": "msbn-dev-ecs-execution-role",
+            "name_prefix": "",
+            "path": "/",
+            "permissions_boundary": "",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "unique_id": "AROAXVMJTQVFKSMFQHULP"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_iam_role",
+      "name": "rekognition_s3",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:iam::526958953802:role/msbn-dev-rekognition-s3-role",
+            "assume_role_policy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"rekognition.amazonaws.com\"}}],\"Version\":\"2012-10-17\"}",
+            "create_date": "2026-04-15T19:02:21Z",
+            "description": "",
+            "force_detach_policies": false,
+            "id": "msbn-dev-rekognition-s3-role",
+            "inline_policy": [
+              {
+                "name": "msbn-dev-rekognition-s3-policy",
+                "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"s3:GetObject\",\"s3:ListBucket\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:s3:::msbn-dev-ml-data-526958953802\",\"arn:aws:s3:::msbn-dev-ml-data-526958953802/*\"]},{\"Action\":[\"s3:PutObject\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::msbn-dev-ml-data-526958953802/rekognition-output/*\"}]}"
+              }
+            ],
+            "managed_policy_arns": [],
+            "max_session_duration": 3600,
+            "name": "msbn-dev-rekognition-s3-role",
+            "name_prefix": "",
+            "path": "/",
+            "permissions_boundary": "",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "unique_id": "AROAXVMJTQVFPUVWWPIGW"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_iam_role_policy",
+      "name": "api_invoke_pipeline",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "msbn-dev-api-task-role:msbn-dev-api-invoke-pipeline",
+            "name": "msbn-dev-api-invoke-pipeline",
+            "name_prefix": "",
+            "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"lambda:InvokeFunction\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-pipeline-orchestrator\"}]}",
+            "role": "msbn-dev-api-task-role"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_iam_role.api_task",
+            "aws_s3_bucket.documents",
+            "aws_s3_bucket.ml_data",
+            "module.pipeline_orchestrator_lambda.aws_iam_role.this",
+            "module.pipeline_orchestrator_lambda.aws_lambda_function.this",
+            "module.pipeline_orchestrator_lambda.data.archive_file.this"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_iam_role_policy",
+      "name": "api_task",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "msbn-dev-api-task-role:msbn-dev-api-task-policy",
+            "name": "msbn-dev-api-task-policy",
+            "name_prefix": "",
+            "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"s3:PutObject\",\"s3:GetObject\",\"s3:DeleteObject\",\"s3:ListBucket\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:s3:::msbn-dev-documents-526958953802\",\"arn:aws:s3:::msbn-dev-documents-526958953802/*\"],\"Sid\":\"S3Documents\"},{\"Action\":[\"lambda:InvokeFunction\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-textract-processor\",\"arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-fraud-analyzer\",\"arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-rekognition-checker\"],\"Sid\":\"InvokeLambdas\"},{\"Action\":[\"secretsmanager:GetSecretValue\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/db-password-Q5Uej0\",\"arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/app-secrets-d3NGp0\"],\"Sid\":\"ReadSecrets\"}]}",
+            "role": "msbn-dev-api-task-role"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_iam_role.api_task",
+            "aws_s3_bucket.documents",
+            "aws_secretsmanager_secret.app",
+            "aws_secretsmanager_secret.db_password",
+            "module.fraud_analyzer_lambda.aws_iam_role.this",
+            "module.fraud_analyzer_lambda.aws_lambda_function.this",
+            "module.fraud_analyzer_lambda.data.archive_file.this",
+            "module.rekognition_lambda.aws_iam_role.this",
+            "module.rekognition_lambda.aws_lambda_function.this",
+            "module.rekognition_lambda.data.archive_file.this",
+            "module.textract_lambda.aws_iam_role.this",
+            "module.textract_lambda.aws_lambda_function.this",
+            "module.textract_lambda.data.archive_file.this"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_iam_role_policy",
+      "name": "ecs_execution_secrets",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "msbn-dev-ecs-execution-role:msbn-dev-ecs-execution-secrets",
+            "name": "msbn-dev-ecs-execution-secrets",
+            "name_prefix": "",
+            "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"secretsmanager:GetSecretValue\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/db-password-Q5Uej0\",\"arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/app-secrets-d3NGp0\",\"arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/keycloak-admin-password-dt9BXG\"]}]}",
+            "role": "msbn-dev-ecs-execution-role"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_iam_role.ecs_task_execution",
+            "aws_secretsmanager_secret.app",
+            "aws_secretsmanager_secret.db_password",
+            "aws_secretsmanager_secret.keycloak_admin"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_iam_role_policy",
+      "name": "rekognition_s3",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "msbn-dev-rekognition-s3-role:msbn-dev-rekognition-s3-policy",
+            "name": "msbn-dev-rekognition-s3-policy",
+            "name_prefix": "",
+            "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"s3:GetObject\",\"s3:ListBucket\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:s3:::msbn-dev-ml-data-526958953802\",\"arn:aws:s3:::msbn-dev-ml-data-526958953802/*\"]},{\"Action\":[\"s3:PutObject\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::msbn-dev-ml-data-526958953802/rekognition-output/*\"}]}",
+            "role": "msbn-dev-rekognition-s3-role"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_iam_role.rekognition_s3",
+            "aws_s3_bucket.ml_data"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_iam_role_policy_attachment",
+      "name": "ecs_execution_managed",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "msbn-dev-ecs-execution-role-2026041519022396410000000d",
+            "policy_arn": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+            "role": "msbn-dev-ecs-execution-role"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_iam_role.ecs_task_execution"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_internet_gateway",
+      "name": "main",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:526958953802:internet-gateway/igw-033086da6b45c574a",
+            "id": "igw-033086da6b45c574a",
+            "owner_id": "526958953802",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-igw",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-igw",
+              "Project": "msbn"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0d59fffaf195535ad"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_lb",
+      "name": "main",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "access_logs": [
+              {
+                "bucket": "",
+                "enabled": false,
+                "prefix": ""
+              }
+            ],
+            "arn": "arn:aws:elasticloadbalancing:us-east-1:526958953802:loadbalancer/app/msbn-dev-alb/8824a90388330334",
+            "arn_suffix": "app/msbn-dev-alb/8824a90388330334",
+            "client_keep_alive": 3600,
+            "connection_logs": [
+              {
+                "bucket": "",
+                "enabled": false,
+                "prefix": ""
+              }
+            ],
+            "customer_owned_ipv4_pool": "",
+            "desync_mitigation_mode": "defensive",
+            "dns_name": "msbn-dev-alb-2055778124.us-east-1.elb.amazonaws.com",
+            "dns_record_client_routing_policy": null,
+            "drop_invalid_header_fields": false,
+            "enable_cross_zone_load_balancing": true,
+            "enable_deletion_protection": false,
+            "enable_http2": true,
+            "enable_tls_version_and_cipher_suite_headers": false,
+            "enable_waf_fail_open": false,
+            "enable_xff_client_port": false,
+            "enable_zonal_shift": false,
+            "enforce_security_group_inbound_rules_on_private_link_traffic": "",
+            "id": "arn:aws:elasticloadbalancing:us-east-1:526958953802:loadbalancer/app/msbn-dev-alb/8824a90388330334",
+            "idle_timeout": 60,
+            "internal": false,
+            "ip_address_type": "ipv4",
+            "ipam_pools": [],
+            "load_balancer_type": "application",
+            "minimum_load_balancer_capacity": [],
+            "name": "msbn-dev-alb",
+            "name_prefix": "",
+            "preserve_host_header": false,
+            "security_groups": [
+              "sg-018165b640d6f9fa1"
+            ],
+            "subnet_mapping": [
+              {
+                "allocation_id": "",
+                "ipv6_address": "",
+                "outpost_id": "",
+                "private_ipv4_address": "",
+                "subnet_id": "subnet-0c0fa1b216b66d2a6"
+              },
+              {
+                "allocation_id": "",
+                "ipv6_address": "",
+                "outpost_id": "",
+                "private_ipv4_address": "",
+                "subnet_id": "subnet-0f6acb343c706a5db"
+              }
+            ],
+            "subnets": [
+              "subnet-0c0fa1b216b66d2a6",
+              "subnet-0f6acb343c706a5db"
+            ],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0d59fffaf195535ad",
+            "xff_header_processing_mode": "append",
+            "zone_id": "Z35SXDOTRQ7X7K"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6NjAwMDAwMDAwMDAwLCJ1cGRhdGUiOjYwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "aws_security_group.alb",
+            "aws_subnet.public",
+            "aws_vpc.main",
+            "data.aws_availability_zones.available"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_lb_listener",
+      "name": "http",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "alpn_policy": null,
+            "arn": "arn:aws:elasticloadbalancing:us-east-1:526958953802:listener/app/msbn-dev-alb/8824a90388330334/ecac85fd53c14b44",
+            "certificate_arn": null,
+            "default_action": [
+              {
+                "authenticate_cognito": [],
+                "authenticate_oidc": [],
+                "fixed_response": [],
+                "forward": [],
+                "order": 1,
+                "redirect": [],
+                "target_group_arn": "arn:aws:elasticloadbalancing:us-east-1:526958953802:targetgroup/msbn-dev-api-tg/e8e8fc3566efd624",
+                "type": "forward"
+              }
+            ],
+            "id": "arn:aws:elasticloadbalancing:us-east-1:526958953802:listener/app/msbn-dev-alb/8824a90388330334/ecac85fd53c14b44",
+            "load_balancer_arn": "arn:aws:elasticloadbalancing:us-east-1:526958953802:loadbalancer/app/msbn-dev-alb/8824a90388330334",
+            "mutual_authentication": [],
+            "port": 80,
+            "protocol": "HTTP",
+            "routing_http_request_x_amzn_mtls_clientcert_header_name": null,
+            "routing_http_request_x_amzn_mtls_clientcert_issuer_header_name": null,
+            "routing_http_request_x_amzn_mtls_clientcert_leaf_header_name": null,
+            "routing_http_request_x_amzn_mtls_clientcert_serial_number_header_name": null,
+            "routing_http_request_x_amzn_mtls_clientcert_subject_header_name": null,
+            "routing_http_request_x_amzn_mtls_clientcert_validity_header_name": null,
+            "routing_http_request_x_amzn_tls_cipher_suite_header_name": null,
+            "routing_http_request_x_amzn_tls_version_header_name": null,
+            "routing_http_response_access_control_allow_credentials_header_value": "",
+            "routing_http_response_access_control_allow_headers_header_value": "",
+            "routing_http_response_access_control_allow_methods_header_value": "",
+            "routing_http_response_access_control_allow_origin_header_value": "",
+            "routing_http_response_access_control_expose_headers_header_value": "",
+            "routing_http_response_access_control_max_age_header_value": "",
+            "routing_http_response_content_security_policy_header_value": "",
+            "routing_http_response_server_enabled": true,
+            "routing_http_response_strict_transport_security_header_value": "",
+            "routing_http_response_x_content_type_options_header_value": "",
+            "routing_http_response_x_frame_options_header_value": "",
+            "ssl_policy": "",
+            "tags": null,
+            "tags_all": {},
+            "tcp_idle_timeout_seconds": null,
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsInVwZGF0ZSI6MzAwMDAwMDAwMDAwfX0=",
+          "dependencies": [
+            "aws_lb.main",
+            "aws_lb_target_group.api",
+            "aws_security_group.alb",
+            "aws_subnet.public",
+            "aws_vpc.main",
+            "data.aws_availability_zones.available"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_lb_listener_rule",
+      "name": "keycloak",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "action": [
+              {
+                "authenticate_cognito": [],
+                "authenticate_oidc": [],
+                "fixed_response": [],
+                "forward": [],
+                "order": 1,
+                "redirect": [],
+                "target_group_arn": "arn:aws:elasticloadbalancing:us-east-1:526958953802:targetgroup/msbn-dev-kc-tg/2ff05834dd307df0",
+                "type": "forward"
+              }
+            ],
+            "arn": "arn:aws:elasticloadbalancing:us-east-1:526958953802:listener-rule/app/msbn-dev-alb/8824a90388330334/ecac85fd53c14b44/c38588df2963f557",
+            "condition": [
+              {
+                "host_header": [],
+                "http_header": [],
+                "http_request_method": [],
+                "path_pattern": [
+                  {
+                    "values": [
+                      "/auth/*",
+                      "/realms/*",
+                      "/resources/*"
+                    ]
+                  }
+                ],
+                "query_string": [],
+                "source_ip": []
+              }
+            ],
+            "id": "arn:aws:elasticloadbalancing:us-east-1:526958953802:listener-rule/app/msbn-dev-alb/8824a90388330334/ecac85fd53c14b44/c38588df2963f557",
+            "listener_arn": "arn:aws:elasticloadbalancing:us-east-1:526958953802:listener/app/msbn-dev-alb/8824a90388330334/ecac85fd53c14b44",
+            "priority": 10,
+            "tags": null,
+            "tags_all": {}
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_lb.main",
+            "aws_lb_listener.http",
+            "aws_lb_target_group.api",
+            "aws_lb_target_group.keycloak",
+            "aws_security_group.alb",
+            "aws_subnet.public",
+            "aws_vpc.main",
+            "data.aws_availability_zones.available"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_lb_target_group",
+      "name": "api",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:elasticloadbalancing:us-east-1:526958953802:targetgroup/msbn-dev-api-tg/e8e8fc3566efd624",
+            "arn_suffix": "targetgroup/msbn-dev-api-tg/e8e8fc3566efd624",
+            "connection_termination": null,
+            "deregistration_delay": "300",
+            "health_check": [
+              {
+                "enabled": true,
+                "healthy_threshold": 2,
+                "interval": 30,
+                "matcher": "200",
+                "path": "/health",
+                "port": "traffic-port",
+                "protocol": "HTTP",
+                "timeout": 5,
+                "unhealthy_threshold": 3
+              }
+            ],
+            "id": "arn:aws:elasticloadbalancing:us-east-1:526958953802:targetgroup/msbn-dev-api-tg/e8e8fc3566efd624",
+            "ip_address_type": "ipv4",
+            "lambda_multi_value_headers_enabled": false,
+            "load_balancer_arns": [],
+            "load_balancing_algorithm_type": "round_robin",
+            "load_balancing_anomaly_mitigation": "off",
+            "load_balancing_cross_zone_enabled": "use_load_balancer_configuration",
+            "name": "msbn-dev-api-tg",
+            "name_prefix": "",
+            "port": 8000,
+            "preserve_client_ip": null,
+            "protocol": "HTTP",
+            "protocol_version": "HTTP1",
+            "proxy_protocol_v2": false,
+            "slow_start": 0,
+            "stickiness": [
+              {
+                "cookie_duration": 86400,
+                "cookie_name": "",
+                "enabled": false,
+                "type": "lb_cookie"
+              }
+            ],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "target_failover": [
+              {
+                "on_deregistration": null,
+                "on_unhealthy": null
+              }
+            ],
+            "target_group_health": [
+              {
+                "dns_failover": [
+                  {
+                    "minimum_healthy_targets_count": "1",
+                    "minimum_healthy_targets_percentage": "off"
+                  }
+                ],
+                "unhealthy_state_routing": [
+                  {
+                    "minimum_healthy_targets_count": 1,
+                    "minimum_healthy_targets_percentage": "off"
+                  }
+                ]
+              }
+            ],
+            "target_health_state": [
+              {
+                "enable_unhealthy_connection_termination": null,
+                "unhealthy_draining_interval": null
+              }
+            ],
+            "target_type": "ip",
+            "vpc_id": "vpc-0d59fffaf195535ad"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_lb_target_group",
+      "name": "keycloak",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:elasticloadbalancing:us-east-1:526958953802:targetgroup/msbn-dev-kc-tg/2ff05834dd307df0",
+            "arn_suffix": "targetgroup/msbn-dev-kc-tg/2ff05834dd307df0",
+            "connection_termination": null,
+            "deregistration_delay": "300",
+            "health_check": [
+              {
+                "enabled": true,
+                "healthy_threshold": 3,
+                "interval": 30,
+                "matcher": "200",
+                "path": "/health/ready",
+                "port": "8080",
+                "protocol": "HTTP",
+                "timeout": 5,
+                "unhealthy_threshold": 3
+              }
+            ],
+            "id": "arn:aws:elasticloadbalancing:us-east-1:526958953802:targetgroup/msbn-dev-kc-tg/2ff05834dd307df0",
+            "ip_address_type": "ipv4",
+            "lambda_multi_value_headers_enabled": false,
+            "load_balancer_arns": [],
+            "load_balancing_algorithm_type": "round_robin",
+            "load_balancing_anomaly_mitigation": "off",
+            "load_balancing_cross_zone_enabled": "use_load_balancer_configuration",
+            "name": "msbn-dev-kc-tg",
+            "name_prefix": "",
+            "port": 8080,
+            "preserve_client_ip": null,
+            "protocol": "HTTP",
+            "protocol_version": "HTTP1",
+            "proxy_protocol_v2": false,
+            "slow_start": 0,
+            "stickiness": [
+              {
+                "cookie_duration": 86400,
+                "cookie_name": "",
+                "enabled": false,
+                "type": "lb_cookie"
+              }
+            ],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "target_failover": [
+              {
+                "on_deregistration": null,
+                "on_unhealthy": null
+              }
+            ],
+            "target_group_health": [
+              {
+                "dns_failover": [
+                  {
+                    "minimum_healthy_targets_count": "1",
+                    "minimum_healthy_targets_percentage": "off"
+                  }
+                ],
+                "unhealthy_state_routing": [
+                  {
+                    "minimum_healthy_targets_count": 1,
+                    "minimum_healthy_targets_percentage": "off"
+                  }
+                ]
+              }
+            ],
+            "target_health_state": [
+              {
+                "enable_unhealthy_connection_termination": null,
+                "unhealthy_draining_interval": null
+              }
+            ],
+            "target_type": "ip",
+            "vpc_id": "vpc-0d59fffaf195535ad"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_nat_gateway",
+      "name": "main",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "allocation_id": "eipalloc-0cffd7488fdc3cece",
+            "association_id": "eipassoc-0475280b9bf605b14",
+            "connectivity_type": "public",
+            "id": "nat-01f0946b9b6c7e4e0",
+            "network_interface_id": "eni-09ad4911ff0232e0c",
+            "private_ip": "10.0.11.17",
+            "public_ip": "98.87.125.208",
+            "secondary_allocation_ids": [],
+            "secondary_private_ip_address_count": 0,
+            "secondary_private_ip_addresses": [],
+            "subnet_id": "subnet-0c0fa1b216b66d2a6",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-nat",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-nat",
+              "Project": "msbn"
+            },
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6MTgwMDAwMDAwMDAwMCwidXBkYXRlIjo2MDAwMDAwMDAwMDB9fQ==",
+          "dependencies": [
+            "aws_eip.nat",
+            "aws_internet_gateway.main",
+            "aws_subnet.public",
+            "aws_vpc.main",
+            "data.aws_availability_zones.available"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_rekognition_project",
+      "name": "transcript_fraud",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "status": "tainted",
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:rekognition:us-east-1:526958953802:project/msbn-dev-transcript-fraud/1776280793116",
+            "auto_update": null,
+            "feature": null,
+            "id": "msbn-dev-transcript-fraud",
+            "name": "msbn-dev-transcript-fraud",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_route_table",
+      "name": "private",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:526958953802:route-table/rtb-0364ee47584865aca",
+            "id": "rtb-0364ee47584865aca",
+            "owner_id": "526958953802",
+            "propagating_vgws": [],
+            "route": [
+              {
+                "carrier_gateway_id": "",
+                "cidr_block": "0.0.0.0/0",
+                "core_network_arn": "",
+                "destination_prefix_list_id": "",
+                "egress_only_gateway_id": "",
+                "gateway_id": "",
+                "ipv6_cidr_block": "",
+                "local_gateway_id": "",
+                "nat_gateway_id": "nat-01f0946b9b6c7e4e0",
+                "network_interface_id": "",
+                "transit_gateway_id": "",
+                "vpc_endpoint_id": "",
+                "vpc_peering_connection_id": ""
+              }
+            ],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-rt-private",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-rt-private",
+              "Project": "msbn"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0d59fffaf195535ad"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjEyMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "aws_eip.nat",
+            "aws_internet_gateway.main",
+            "aws_nat_gateway.main",
+            "aws_subnet.public",
+            "aws_vpc.main",
+            "data.aws_availability_zones.available"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_route_table",
+      "name": "public",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:526958953802:route-table/rtb-01c904c487393321e",
+            "id": "rtb-01c904c487393321e",
+            "owner_id": "526958953802",
+            "propagating_vgws": [],
+            "route": [
+              {
+                "carrier_gateway_id": "",
+                "cidr_block": "0.0.0.0/0",
+                "core_network_arn": "",
+                "destination_prefix_list_id": "",
+                "egress_only_gateway_id": "",
+                "gateway_id": "igw-033086da6b45c574a",
+                "ipv6_cidr_block": "",
+                "local_gateway_id": "",
+                "nat_gateway_id": "",
+                "network_interface_id": "",
+                "transit_gateway_id": "",
+                "vpc_endpoint_id": "",
+                "vpc_peering_connection_id": ""
+              }
+            ],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-rt-public",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-rt-public",
+              "Project": "msbn"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0d59fffaf195535ad"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjEyMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "aws_internet_gateway.main",
+            "aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_route_table_association",
+      "name": "private",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "gateway_id": "",
+            "id": "rtbassoc-05ac4de176e688ee3",
+            "route_table_id": "rtb-0364ee47584865aca",
+            "subnet_id": "subnet-0993ba19acbadc004",
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjEyMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "aws_eip.nat",
+            "aws_internet_gateway.main",
+            "aws_nat_gateway.main",
+            "aws_route_table.private",
+            "aws_subnet.private",
+            "aws_subnet.public",
+            "aws_vpc.main",
+            "data.aws_availability_zones.available"
+          ]
+        },
+        {
+          "index_key": 1,
+          "schema_version": 0,
+          "attributes": {
+            "gateway_id": "",
+            "id": "rtbassoc-053689855167f85af",
+            "route_table_id": "rtb-0364ee47584865aca",
+            "subnet_id": "subnet-010f49219d6777d9f",
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjEyMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "aws_eip.nat",
+            "aws_internet_gateway.main",
+            "aws_nat_gateway.main",
+            "aws_route_table.private",
+            "aws_subnet.private",
+            "aws_subnet.public",
+            "aws_vpc.main",
+            "data.aws_availability_zones.available"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_route_table_association",
+      "name": "public",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "gateway_id": "",
+            "id": "rtbassoc-0d04187f2c8f114e5",
+            "route_table_id": "rtb-01c904c487393321e",
+            "subnet_id": "subnet-0c0fa1b216b66d2a6",
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjEyMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "aws_internet_gateway.main",
+            "aws_route_table.public",
+            "aws_subnet.public",
+            "aws_vpc.main",
+            "data.aws_availability_zones.available"
+          ]
+        },
+        {
+          "index_key": 1,
+          "schema_version": 0,
+          "attributes": {
+            "gateway_id": "",
+            "id": "rtbassoc-0d79749969fd79693",
+            "route_table_id": "rtb-01c904c487393321e",
+            "subnet_id": "subnet-0f6acb343c706a5db",
+            "timeouts": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAsImRlbGV0ZSI6MzAwMDAwMDAwMDAwLCJ1cGRhdGUiOjEyMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "aws_internet_gateway.main",
+            "aws_route_table.public",
+            "aws_subnet.public",
+            "aws_vpc.main",
+            "data.aws_availability_zones.available"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_s3_bucket",
+      "name": "documents",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "acceleration_status": "",
+            "acl": null,
+            "arn": "arn:aws:s3:::msbn-dev-documents-526958953802",
+            "bucket": "msbn-dev-documents-526958953802",
+            "bucket_domain_name": "msbn-dev-documents-526958953802.s3.amazonaws.com",
+            "bucket_prefix": "",
+            "bucket_regional_domain_name": "msbn-dev-documents-526958953802.s3.us-east-1.amazonaws.com",
+            "cors_rule": [],
+            "force_destroy": false,
+            "grant": [
+              {
+                "id": "04049f43e0315ce031aa318b7264a3080fd73eaa64b6f5ae853ec40772d88291",
+                "permissions": [
+                  "FULL_CONTROL"
+                ],
+                "type": "CanonicalUser",
+                "uri": ""
+              }
+            ],
+            "hosted_zone_id": "Z3AQBSTGFYJSTF",
+            "id": "msbn-dev-documents-526958953802",
+            "lifecycle_rule": [],
+            "logging": [],
+            "object_lock_configuration": [],
+            "object_lock_enabled": false,
+            "policy": "",
+            "region": "us-east-1",
+            "replication_configuration": [],
+            "request_payer": "BucketOwner",
+            "server_side_encryption_configuration": [
+              {
+                "rule": [
+                  {
+                    "apply_server_side_encryption_by_default": [
+                      {
+                        "kms_master_key_id": "",
+                        "sse_algorithm": "AES256"
+                      }
+                    ],
+                    "bucket_key_enabled": false
+                  }
+                ]
+              }
+            ],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "timeouts": null,
+            "versioning": [
+              {
+                "enabled": true,
+                "mfa_delete": false
+              }
+            ],
+            "website": [],
+            "website_domain": null,
+            "website_endpoint": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjM2MDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_s3_bucket",
+      "name": "ml_data",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "acceleration_status": "",
+            "acl": null,
+            "arn": "arn:aws:s3:::msbn-dev-ml-data-526958953802",
+            "bucket": "msbn-dev-ml-data-526958953802",
+            "bucket_domain_name": "msbn-dev-ml-data-526958953802.s3.amazonaws.com",
+            "bucket_prefix": "",
+            "bucket_regional_domain_name": "msbn-dev-ml-data-526958953802.s3.us-east-1.amazonaws.com",
+            "cors_rule": [],
+            "force_destroy": false,
+            "grant": [
+              {
+                "id": "04049f43e0315ce031aa318b7264a3080fd73eaa64b6f5ae853ec40772d88291",
+                "permissions": [
+                  "FULL_CONTROL"
+                ],
+                "type": "CanonicalUser",
+                "uri": ""
+              }
+            ],
+            "hosted_zone_id": "Z3AQBSTGFYJSTF",
+            "id": "msbn-dev-ml-data-526958953802",
+            "lifecycle_rule": [],
+            "logging": [],
+            "object_lock_configuration": [],
+            "object_lock_enabled": false,
+            "policy": "",
+            "region": "us-east-1",
+            "replication_configuration": [],
+            "request_payer": "BucketOwner",
+            "server_side_encryption_configuration": [
+              {
+                "rule": [
+                  {
+                    "apply_server_side_encryption_by_default": [
+                      {
+                        "kms_master_key_id": "",
+                        "sse_algorithm": "AES256"
+                      }
+                    ],
+                    "bucket_key_enabled": false
+                  }
+                ]
+              }
+            ],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn",
+              "Purpose": "ml-training-and-inference"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn",
+              "Purpose": "ml-training-and-inference"
+            },
+            "timeouts": null,
+            "versioning": [
+              {
+                "enabled": true,
+                "mfa_delete": false
+              }
+            ],
+            "website": [],
+            "website_domain": null,
+            "website_endpoint": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjM2MDAwMDAwMDAwMDAsInJlYWQiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH19"
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_s3_bucket_public_access_block",
+      "name": "documents",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "block_public_acls": true,
+            "block_public_policy": true,
+            "bucket": "msbn-dev-documents-526958953802",
+            "id": "msbn-dev-documents-526958953802",
+            "ignore_public_acls": true,
+            "restrict_public_buckets": true
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_s3_bucket.documents"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_s3_bucket_public_access_block",
+      "name": "ml_data",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "block_public_acls": true,
+            "block_public_policy": true,
+            "bucket": "msbn-dev-ml-data-526958953802",
+            "id": "msbn-dev-ml-data-526958953802",
+            "ignore_public_acls": true,
+            "restrict_public_buckets": true
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_s3_bucket.ml_data"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_s3_bucket_server_side_encryption_configuration",
+      "name": "documents",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "bucket": "msbn-dev-documents-526958953802",
+            "expected_bucket_owner": "",
+            "id": "msbn-dev-documents-526958953802",
+            "rule": [
+              {
+                "apply_server_side_encryption_by_default": [
+                  {
+                    "kms_master_key_id": "",
+                    "sse_algorithm": "AES256"
+                  }
+                ],
+                "bucket_key_enabled": false
+              }
+            ]
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_s3_bucket.documents"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_s3_bucket_server_side_encryption_configuration",
+      "name": "ml_data",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "bucket": "msbn-dev-ml-data-526958953802",
+            "expected_bucket_owner": "",
+            "id": "msbn-dev-ml-data-526958953802",
+            "rule": [
+              {
+                "apply_server_side_encryption_by_default": [
+                  {
+                    "kms_master_key_id": "",
+                    "sse_algorithm": "AES256"
+                  }
+                ],
+                "bucket_key_enabled": false
+              }
+            ]
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_s3_bucket.ml_data"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_s3_bucket_versioning",
+      "name": "documents",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "bucket": "msbn-dev-documents-526958953802",
+            "expected_bucket_owner": "",
+            "id": "msbn-dev-documents-526958953802",
+            "mfa": null,
+            "versioning_configuration": [
+              {
+                "mfa_delete": "",
+                "status": "Enabled"
+              }
+            ]
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_s3_bucket.documents"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_s3_bucket_versioning",
+      "name": "ml_data",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "bucket": "msbn-dev-ml-data-526958953802",
+            "expected_bucket_owner": "",
+            "id": "msbn-dev-ml-data-526958953802",
+            "mfa": null,
+            "versioning_configuration": [
+              {
+                "mfa_delete": "",
+                "status": "Enabled"
+              }
+            ]
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_s3_bucket.ml_data"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_s3_object",
+      "name": "fraud_rules",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "acl": null,
+            "arn": "arn:aws:s3:::msbn-dev-ml-data-526958953802/rules/fraud_rules.json",
+            "bucket": "msbn-dev-ml-data-526958953802",
+            "bucket_key_enabled": false,
+            "cache_control": "",
+            "checksum_algorithm": null,
+            "checksum_crc32": "",
+            "checksum_crc32c": "",
+            "checksum_crc64nvme": "",
+            "checksum_sha1": "",
+            "checksum_sha256": "",
+            "content": null,
+            "content_base64": null,
+            "content_disposition": "",
+            "content_encoding": "",
+            "content_language": "",
+            "content_type": "application/json",
+            "etag": "db4098fefca92b8c8429c103c2e5aa14",
+            "force_destroy": false,
+            "id": "rules/fraud_rules.json",
+            "key": "rules/fraud_rules.json",
+            "kms_key_id": null,
+            "metadata": {},
+            "object_lock_legal_hold_status": "",
+            "object_lock_mode": "",
+            "object_lock_retain_until_date": "",
+            "override_provider": [],
+            "server_side_encryption": "AES256",
+            "source": "./../lambdas/rules/fraud_rules.json",
+            "source_hash": null,
+            "storage_class": "STANDARD",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "version_id": "null",
+            "website_redirect": ""
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_s3_bucket.ml_data"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_secretsmanager_secret",
+      "name": "api_callback_secret",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/api-callback-secret-B6b6PG",
+            "description": "",
+            "force_overwrite_replica_secret": false,
+            "id": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/api-callback-secret-B6b6PG",
+            "kms_key_id": "",
+            "name": "msbn-dev/api-callback-secret",
+            "name_prefix": "",
+            "policy": "",
+            "recovery_window_in_days": 0,
+            "replica": [],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_secretsmanager_secret",
+      "name": "app",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/app-secrets-d3NGp0",
+            "description": "",
+            "force_overwrite_replica_secret": false,
+            "id": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/app-secrets-d3NGp0",
+            "kms_key_id": "",
+            "name": "msbn-dev/app-secrets",
+            "name_prefix": "",
+            "policy": "",
+            "recovery_window_in_days": 0,
+            "replica": [],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_secretsmanager_secret",
+      "name": "db_password",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/db-password-Q5Uej0",
+            "description": "",
+            "force_overwrite_replica_secret": false,
+            "id": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/db-password-Q5Uej0",
+            "kms_key_id": "",
+            "name": "msbn-dev/db-password",
+            "name_prefix": "",
+            "policy": "",
+            "recovery_window_in_days": 0,
+            "replica": [],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_secretsmanager_secret",
+      "name": "keycloak_admin",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/keycloak-admin-password-dt9BXG",
+            "description": "",
+            "force_overwrite_replica_secret": false,
+            "id": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/keycloak-admin-password-dt9BXG",
+            "kms_key_id": "",
+            "name": "msbn-dev/keycloak-admin-password",
+            "name_prefix": "",
+            "policy": "",
+            "recovery_window_in_days": 0,
+            "replica": [],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_secretsmanager_secret_version",
+      "name": "api_callback_secret",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/api-callback-secret-B6b6PG",
+            "has_secret_string_wo": null,
+            "id": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/api-callback-secret-B6b6PG|terraform-2026041519022384520000000c",
+            "secret_binary": "",
+            "secret_id": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/api-callback-secret-B6b6PG",
+            "secret_string": "2e01d5aeaa5cd3c06c16e5b2cdae8a6a16a2fba43571465623fb1954ce1c6d03",
+            "secret_string_wo": null,
+            "secret_string_wo_version": null,
+            "version_id": "terraform-2026041519022384520000000c",
+            "version_stages": [
+              "AWSCURRENT"
+            ]
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "secret_binary"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "secret_string"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "secret_string_wo"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_secretsmanager_secret.api_callback_secret"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_secretsmanager_secret_version",
+      "name": "app",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/app-secrets-d3NGp0",
+            "has_secret_string_wo": null,
+            "id": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/app-secrets-d3NGp0|terraform-20260415190223096400000005",
+            "secret_binary": "",
+            "secret_id": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/app-secrets-d3NGp0",
+            "secret_string": "{\"KEYCLOAK_CLIENT_SECRET\":\"msbn-api-secret-change-in-prod\",\"SECRET_KEY\":\"37c5edcf8f3ba317dbef597947c875b0acba8f4ba87386344cf74aabf7943f2e\"}",
+            "secret_string_wo": null,
+            "secret_string_wo_version": null,
+            "version_id": "terraform-20260415190223096400000005",
+            "version_stages": [
+              "AWSCURRENT"
+            ]
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "secret_binary"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "secret_string"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "secret_string_wo"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_secretsmanager_secret.app"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_secretsmanager_secret_version",
+      "name": "db_password",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/db-password-Q5Uej0",
+            "has_secret_string_wo": null,
+            "id": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/db-password-Q5Uej0|terraform-20260415190223144800000006",
+            "secret_binary": "",
+            "secret_id": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/db-password-Q5Uej0",
+            "secret_string": "MsbN9862!DBPass2026",
+            "secret_string_wo": null,
+            "secret_string_wo_version": null,
+            "version_id": "terraform-20260415190223144800000006",
+            "version_stages": [
+              "AWSCURRENT"
+            ]
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "secret_binary"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "secret_string"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "secret_string_wo"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_secretsmanager_secret.db_password"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_secretsmanager_secret_version",
+      "name": "keycloak_admin",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/keycloak-admin-password-dt9BXG",
+            "has_secret_string_wo": null,
+            "id": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/keycloak-admin-password-dt9BXG|terraform-20260415190223410600000007",
+            "secret_binary": "",
+            "secret_id": "arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/keycloak-admin-password-dt9BXG",
+            "secret_string": "admin",
+            "secret_string_wo": null,
+            "secret_string_wo_version": null,
+            "version_id": "terraform-20260415190223410600000007",
+            "version_stages": [
+              "AWSCURRENT"
+            ]
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "secret_binary"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "secret_string"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "secret_string_wo"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_secretsmanager_secret.keycloak_admin"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "alb",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:526958953802:security-group/sg-018165b640d6f9fa1",
+            "description": "ALB - allow inbound HTTP/HTTPS",
+            "egress": [
+              {
+                "cidr_blocks": [
+                  "0.0.0.0/0"
+                ],
+                "description": "",
+                "from_port": 0,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "-1",
+                "security_groups": [],
+                "self": false,
+                "to_port": 0
+              }
+            ],
+            "id": "sg-018165b640d6f9fa1",
+            "ingress": [
+              {
+                "cidr_blocks": [
+                  "0.0.0.0/0"
+                ],
+                "description": "",
+                "from_port": 443,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 443
+              },
+              {
+                "cidr_blocks": [
+                  "0.0.0.0/0"
+                ],
+                "description": "",
+                "from_port": 80,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [],
+                "self": false,
+                "to_port": 80
+              }
+            ],
+            "name": "msbn-dev-alb-sg",
+            "name_prefix": "",
+            "owner_id": "526958953802",
+            "revoke_rules_on_delete": false,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-alb-sg",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-alb-sg",
+              "Project": "msbn"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0d59fffaf195535ad"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6OTAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIxIn0=",
+          "dependencies": [
+            "aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "api",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:526958953802:security-group/sg-0b0b2c36d8a3121b4",
+            "description": "FastAPI ECS task - inbound from ALB only",
+            "egress": [
+              {
+                "cidr_blocks": [
+                  "0.0.0.0/0"
+                ],
+                "description": "",
+                "from_port": 0,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "-1",
+                "security_groups": [],
+                "self": false,
+                "to_port": 0
+              }
+            ],
+            "id": "sg-0b0b2c36d8a3121b4",
+            "ingress": [
+              {
+                "cidr_blocks": [],
+                "description": "",
+                "from_port": 8000,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [
+                  "sg-018165b640d6f9fa1"
+                ],
+                "self": false,
+                "to_port": 8000
+              }
+            ],
+            "name": "msbn-dev-api-sg",
+            "name_prefix": "",
+            "owner_id": "526958953802",
+            "revoke_rules_on_delete": false,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-api-sg",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-api-sg",
+              "Project": "msbn"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0d59fffaf195535ad"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6OTAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIxIn0=",
+          "dependencies": [
+            "aws_security_group.alb",
+            "aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "keycloak",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:526958953802:security-group/sg-0d62c7e24071536bb",
+            "description": "Keycloak ECS task - inbound from ALB and API",
+            "egress": [
+              {
+                "cidr_blocks": [
+                  "0.0.0.0/0"
+                ],
+                "description": "",
+                "from_port": 0,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "-1",
+                "security_groups": [],
+                "self": false,
+                "to_port": 0
+              }
+            ],
+            "id": "sg-0d62c7e24071536bb",
+            "ingress": [
+              {
+                "cidr_blocks": [],
+                "description": "",
+                "from_port": 8080,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [
+                  "sg-018165b640d6f9fa1",
+                  "sg-0b0b2c36d8a3121b4"
+                ],
+                "self": false,
+                "to_port": 8080
+              }
+            ],
+            "name": "msbn-dev-keycloak-sg",
+            "name_prefix": "",
+            "owner_id": "526958953802",
+            "revoke_rules_on_delete": false,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-keycloak-sg",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-keycloak-sg",
+              "Project": "msbn"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0d59fffaf195535ad"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6OTAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIxIn0=",
+          "dependencies": [
+            "aws_security_group.alb",
+            "aws_security_group.api",
+            "aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "rds",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:526958953802:security-group/sg-014ecf7c0335ac74f",
+            "description": "RDS PostgreSQL - inbound from API only",
+            "egress": [],
+            "id": "sg-014ecf7c0335ac74f",
+            "ingress": [
+              {
+                "cidr_blocks": [],
+                "description": "",
+                "from_port": 5432,
+                "ipv6_cidr_blocks": [],
+                "prefix_list_ids": [],
+                "protocol": "tcp",
+                "security_groups": [
+                  "sg-0b0b2c36d8a3121b4"
+                ],
+                "self": false,
+                "to_port": 5432
+              }
+            ],
+            "name": "msbn-dev-rds-sg",
+            "name_prefix": "",
+            "owner_id": "526958953802",
+            "revoke_rules_on_delete": false,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-rds-sg",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-rds-sg",
+              "Project": "msbn"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0d59fffaf195535ad"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6OTAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIxIn0=",
+          "dependencies": [
+            "aws_security_group.alb",
+            "aws_security_group.api",
+            "aws_vpc.main"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_subnet",
+      "name": "private",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:526958953802:subnet/subnet-0993ba19acbadc004",
+            "assign_ipv6_address_on_creation": false,
+            "availability_zone": "us-east-1a",
+            "availability_zone_id": "use1-az1",
+            "cidr_block": "10.0.32.0/20",
+            "customer_owned_ipv4_pool": "",
+            "enable_dns64": false,
+            "enable_lni_at_device_index": 0,
+            "enable_resource_name_dns_a_record_on_launch": false,
+            "enable_resource_name_dns_aaaa_record_on_launch": false,
+            "id": "subnet-0993ba19acbadc004",
+            "ipv6_cidr_block": "",
+            "ipv6_cidr_block_association_id": "",
+            "ipv6_native": false,
+            "map_customer_owned_ip_on_launch": false,
+            "map_public_ip_on_launch": false,
+            "outpost_arn": "",
+            "owner_id": "526958953802",
+            "private_dns_hostname_type_on_launch": "ip-name",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-private-1",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-private-1",
+              "Project": "msbn"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0d59fffaf195535ad"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6MTIwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMSJ9",
+          "dependencies": [
+            "aws_vpc.main",
+            "data.aws_availability_zones.available"
+          ]
+        },
+        {
+          "index_key": 1,
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:526958953802:subnet/subnet-010f49219d6777d9f",
+            "assign_ipv6_address_on_creation": false,
+            "availability_zone": "us-east-1b",
+            "availability_zone_id": "use1-az2",
+            "cidr_block": "10.0.48.0/20",
+            "customer_owned_ipv4_pool": "",
+            "enable_dns64": false,
+            "enable_lni_at_device_index": 0,
+            "enable_resource_name_dns_a_record_on_launch": false,
+            "enable_resource_name_dns_aaaa_record_on_launch": false,
+            "id": "subnet-010f49219d6777d9f",
+            "ipv6_cidr_block": "",
+            "ipv6_cidr_block_association_id": "",
+            "ipv6_native": false,
+            "map_customer_owned_ip_on_launch": false,
+            "map_public_ip_on_launch": false,
+            "outpost_arn": "",
+            "owner_id": "526958953802",
+            "private_dns_hostname_type_on_launch": "ip-name",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-private-2",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-private-2",
+              "Project": "msbn"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0d59fffaf195535ad"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6MTIwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMSJ9",
+          "dependencies": [
+            "aws_vpc.main",
+            "data.aws_availability_zones.available"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_subnet",
+      "name": "public",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:526958953802:subnet/subnet-0c0fa1b216b66d2a6",
+            "assign_ipv6_address_on_creation": false,
+            "availability_zone": "us-east-1a",
+            "availability_zone_id": "use1-az1",
+            "cidr_block": "10.0.0.0/20",
+            "customer_owned_ipv4_pool": "",
+            "enable_dns64": false,
+            "enable_lni_at_device_index": 0,
+            "enable_resource_name_dns_a_record_on_launch": false,
+            "enable_resource_name_dns_aaaa_record_on_launch": false,
+            "id": "subnet-0c0fa1b216b66d2a6",
+            "ipv6_cidr_block": "",
+            "ipv6_cidr_block_association_id": "",
+            "ipv6_native": false,
+            "map_customer_owned_ip_on_launch": false,
+            "map_public_ip_on_launch": true,
+            "outpost_arn": "",
+            "owner_id": "526958953802",
+            "private_dns_hostname_type_on_launch": "ip-name",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-public-1",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-public-1",
+              "Project": "msbn"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0d59fffaf195535ad"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6MTIwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMSJ9",
+          "dependencies": [
+            "aws_vpc.main",
+            "data.aws_availability_zones.available"
+          ]
+        },
+        {
+          "index_key": 1,
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:526958953802:subnet/subnet-0f6acb343c706a5db",
+            "assign_ipv6_address_on_creation": false,
+            "availability_zone": "us-east-1b",
+            "availability_zone_id": "use1-az2",
+            "cidr_block": "10.0.16.0/20",
+            "customer_owned_ipv4_pool": "",
+            "enable_dns64": false,
+            "enable_lni_at_device_index": 0,
+            "enable_resource_name_dns_a_record_on_launch": false,
+            "enable_resource_name_dns_aaaa_record_on_launch": false,
+            "id": "subnet-0f6acb343c706a5db",
+            "ipv6_cidr_block": "",
+            "ipv6_cidr_block_association_id": "",
+            "ipv6_native": false,
+            "map_customer_owned_ip_on_launch": false,
+            "map_public_ip_on_launch": true,
+            "outpost_arn": "",
+            "owner_id": "526958953802",
+            "private_dns_hostname_type_on_launch": "ip-name",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-public-2",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-public-2",
+              "Project": "msbn"
+            },
+            "timeouts": null,
+            "vpc_id": "vpc-0d59fffaf195535ad"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6MTIwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMSJ9",
+          "dependencies": [
+            "aws_vpc.main",
+            "data.aws_availability_zones.available"
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_vpc",
+      "name": "main",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ec2:us-east-1:526958953802:vpc/vpc-0d59fffaf195535ad",
+            "assign_generated_ipv6_cidr_block": false,
+            "cidr_block": "10.0.0.0/16",
+            "default_network_acl_id": "acl-0e214be7d628a144e",
+            "default_route_table_id": "rtb-0ab4a1e90f1dc143a",
+            "default_security_group_id": "sg-0762267f716d6c947",
+            "dhcp_options_id": "dopt-087d664fee1a13377",
+            "enable_dns_hostnames": true,
+            "enable_dns_support": true,
+            "enable_network_address_usage_metrics": false,
+            "id": "vpc-0d59fffaf195535ad",
+            "instance_tenancy": "default",
+            "ipv4_ipam_pool_id": null,
+            "ipv4_netmask_length": null,
+            "ipv6_association_id": "",
+            "ipv6_cidr_block": "",
+            "ipv6_cidr_block_network_border_group": "",
+            "ipv6_ipam_pool_id": "",
+            "ipv6_netmask_length": 0,
+            "main_route_table_id": "rtb-0ab4a1e90f1dc143a",
+            "owner_id": "526958953802",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-vpc",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Name": "msbn-dev-vpc",
+              "Project": "msbn"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJzY2hlbWFfdmVyc2lvbiI6IjEifQ=="
+        }
+      ]
+    },
+    {
+      "module": "module.api_service",
+      "mode": "managed",
+      "type": "aws_ecs_service",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "alarms": [],
+            "availability_zone_rebalancing": "DISABLED",
+            "capacity_provider_strategy": [],
+            "cluster": "arn:aws:ecs:us-east-1:526958953802:cluster/msbn-dev-cluster",
+            "deployment_circuit_breaker": [
+              {
+                "enable": false,
+                "rollback": false
+              }
+            ],
+            "deployment_controller": [
+              {
+                "type": "ECS"
+              }
+            ],
+            "deployment_maximum_percent": 200,
+            "deployment_minimum_healthy_percent": 100,
+            "desired_count": 1,
+            "enable_ecs_managed_tags": false,
+            "enable_execute_command": false,
+            "force_delete": null,
+            "force_new_deployment": null,
+            "health_check_grace_period_seconds": 0,
+            "iam_role": "/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS",
+            "id": "arn:aws:ecs:us-east-1:526958953802:service/msbn-dev-cluster/msbn-dev-api",
+            "launch_type": "FARGATE",
+            "load_balancer": [
+              {
+                "container_name": "msbn-dev-api",
+                "container_port": 8000,
+                "elb_name": "",
+                "target_group_arn": "arn:aws:elasticloadbalancing:us-east-1:526958953802:targetgroup/msbn-dev-api-tg/e8e8fc3566efd624"
+              }
+            ],
+            "name": "msbn-dev-api",
+            "network_configuration": [
+              {
+                "assign_public_ip": false,
+                "security_groups": [
+                  "sg-0b0b2c36d8a3121b4"
+                ],
+                "subnets": [
+                  "subnet-010f49219d6777d9f",
+                  "subnet-0993ba19acbadc004"
+                ]
+              }
+            ],
+            "ordered_placement_strategy": [],
+            "placement_constraints": [],
+            "platform_version": "LATEST",
+            "propagate_tags": "NONE",
+            "scheduling_strategy": "REPLICA",
+            "service_connect_configuration": [],
+            "service_registries": [],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "task_definition": "arn:aws:ecs:us-east-1:526958953802:task-definition/msbn-dev-api:1",
+            "timeouts": null,
+            "triggers": {},
+            "volume_configuration": [],
+            "vpc_lattice_configurations": [],
+            "wait_for_steady_state": false
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMSJ9",
+          "dependencies": [
+            "aws_cloudwatch_log_group.api",
+            "aws_ecr_repository.api",
+            "aws_ecs_cluster.main",
+            "aws_iam_role.api_task",
+            "aws_iam_role.ecs_task_execution",
+            "aws_lb.main",
+            "aws_lb_target_group.api",
+            "aws_s3_bucket.documents",
+            "aws_secretsmanager_secret.app",
+            "aws_security_group.alb",
+            "aws_security_group.api",
+            "aws_security_group.rds",
+            "aws_subnet.private",
+            "aws_subnet.public",
+            "aws_vpc.main",
+            "data.aws_availability_zones.available",
+            "module.api_service.aws_ecs_task_definition.this",
+            "module.database.aws_db_instance.this",
+            "module.database.aws_db_subnet_group.this",
+            "module.fraud_analyzer_lambda.aws_iam_role.this",
+            "module.fraud_analyzer_lambda.aws_lambda_function.this",
+            "module.fraud_analyzer_lambda.data.archive_file.this",
+            "module.rekognition_lambda.aws_iam_role.this",
+            "module.rekognition_lambda.aws_lambda_function.this",
+            "module.rekognition_lambda.data.archive_file.this",
+            "module.textract_lambda.aws_iam_role.this",
+            "module.textract_lambda.aws_lambda_function.this",
+            "module.textract_lambda.data.archive_file.this"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.api_service",
+      "mode": "managed",
+      "type": "aws_ecs_task_definition",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ecs:us-east-1:526958953802:task-definition/msbn-dev-api:1",
+            "arn_without_revision": "arn:aws:ecs:us-east-1:526958953802:task-definition/msbn-dev-api",
+            "container_definitions": "[{\"environment\":[{\"name\":\"ALLOWED_ORIGINS\",\"value\":\"http://localhost:5173,http://localhost:3000,http://localhost:8000\"},{\"name\":\"APP_ENV\",\"value\":\"dev\"},{\"name\":\"AWS_REGION_NAME\",\"value\":\"us-east-1\"},{\"name\":\"DATABASE_SYNC_URL\",\"value\":\"postgresql+psycopg2://msbn_user:MsbN9862!DBPass2026@msbn-dev-postgres.cm16aka82i8r.us-east-1.rds.amazonaws.com:5432/msbn_db\"},{\"name\":\"DATABASE_URL\",\"value\":\"postgresql+asyncpg://msbn_user:MsbN9862!DBPass2026@msbn-dev-postgres.cm16aka82i8r.us-east-1.rds.amazonaws.com:5432/msbn_db\"},{\"name\":\"DEBUG\",\"value\":\"true\"},{\"name\":\"KEYCLOAK_CLIENT_ID\",\"value\":\"msbn-api\"},{\"name\":\"KEYCLOAK_REALM\",\"value\":\"msbn\"},{\"name\":\"KEYCLOAK_URL\",\"value\":\"http://msbn-dev-alb-2055778124.us-east-1.elb.amazonaws.com\"},{\"name\":\"LAMBDA_FRAUD_ARN\",\"value\":\"arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-fraud-analyzer\"},{\"name\":\"LAMBDA_REKOGNITION_ARN\",\"value\":\"arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-rekognition-checker\"},{\"name\":\"LAMBDA_TEXTRACT_ARN\",\"value\":\"arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-textract-processor\"},{\"name\":\"S3_DOCUMENTS_BUCKET\",\"value\":\"msbn-dev-documents-526958953802\"}],\"essential\":true,\"image\":\"526958953802.dkr.ecr.us-east-1.amazonaws.com/msbn-dev-api:latest\",\"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-region\":\"us-east-1\",\"awslogs-stream-prefix\":\"ecs\",\"awslogs-group\":\"/ecs/msbn-dev/api\"}},\"mountPoints\":[],\"name\":\"msbn-dev-api\",\"portMappings\":[{\"containerPort\":8000,\"hostPort\":8000,\"protocol\":\"tcp\"}],\"secrets\":[{\"name\":\"KEYCLOAK_CLIENT_SECRET\",\"valueFrom\":\"arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/app-secrets-d3NGp0:KEYCLOAK_CLIENT_SECRET::\"},{\"name\":\"SECRET_KEY\",\"valueFrom\":\"arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/app-secrets-d3NGp0:SECRET_KEY::\"}],\"systemControls\":[],\"volumesFrom\":[]}]",
+            "cpu": "512",
+            "enable_fault_injection": false,
+            "ephemeral_storage": [],
+            "execution_role_arn": "arn:aws:iam::526958953802:role/msbn-dev-ecs-execution-role",
+            "family": "msbn-dev-api",
+            "id": "msbn-dev-api",
+            "inference_accelerator": [],
+            "ipc_mode": "",
+            "memory": "1024",
+            "network_mode": "awsvpc",
+            "pid_mode": "",
+            "placement_constraints": [],
+            "proxy_configuration": [],
+            "requires_compatibilities": [
+              "FARGATE"
+            ],
+            "revision": 1,
+            "runtime_platform": [],
+            "skip_destroy": false,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "task_role_arn": "arn:aws:iam::526958953802:role/msbn-dev-api-task-role",
+            "track_latest": false,
+            "volume": []
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "container_definitions"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJzY2hlbWFfdmVyc2lvbiI6IjEifQ==",
+          "dependencies": [
+            "aws_cloudwatch_log_group.api",
+            "aws_ecr_repository.api",
+            "aws_iam_role.api_task",
+            "aws_iam_role.ecs_task_execution",
+            "aws_lb.main",
+            "aws_s3_bucket.documents",
+            "aws_secretsmanager_secret.app",
+            "aws_security_group.alb",
+            "aws_security_group.api",
+            "aws_security_group.rds",
+            "aws_subnet.private",
+            "aws_subnet.public",
+            "aws_vpc.main",
+            "data.aws_availability_zones.available",
+            "module.database.aws_db_instance.this",
+            "module.database.aws_db_subnet_group.this",
+            "module.fraud_analyzer_lambda.aws_iam_role.this",
+            "module.fraud_analyzer_lambda.aws_lambda_function.this",
+            "module.fraud_analyzer_lambda.data.archive_file.this",
+            "module.rekognition_lambda.aws_iam_role.this",
+            "module.rekognition_lambda.aws_lambda_function.this",
+            "module.rekognition_lambda.data.archive_file.this",
+            "module.textract_lambda.aws_iam_role.this",
+            "module.textract_lambda.aws_lambda_function.this",
+            "module.textract_lambda.data.archive_file.this"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.database",
+      "mode": "managed",
+      "type": "aws_db_instance",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 2,
+          "attributes": {
+            "address": "msbn-dev-postgres.cm16aka82i8r.us-east-1.rds.amazonaws.com",
+            "allocated_storage": 20,
+            "allow_major_version_upgrade": null,
+            "apply_immediately": false,
+            "arn": "arn:aws:rds:us-east-1:526958953802:db:msbn-dev-postgres",
+            "auto_minor_version_upgrade": true,
+            "availability_zone": "us-east-1b",
+            "backup_retention_period": 7,
+            "backup_target": "region",
+            "backup_window": "09:22-09:52",
+            "blue_green_update": [],
+            "ca_cert_identifier": "rds-ca-rsa2048-g1",
+            "character_set_name": "",
+            "copy_tags_to_snapshot": false,
+            "custom_iam_instance_profile": "",
+            "customer_owned_ip_enabled": false,
+            "database_insights_mode": "standard",
+            "db_name": "msbn_db",
+            "db_subnet_group_name": "msbn-dev-db-subnet",
+            "dedicated_log_volume": false,
+            "delete_automated_backups": true,
+            "deletion_protection": false,
+            "domain": "",
+            "domain_auth_secret_arn": "",
+            "domain_dns_ips": null,
+            "domain_fqdn": "",
+            "domain_iam_role_name": "",
+            "domain_ou": "",
+            "enabled_cloudwatch_logs_exports": null,
+            "endpoint": "msbn-dev-postgres.cm16aka82i8r.us-east-1.rds.amazonaws.com:5432",
+            "engine": "postgres",
+            "engine_lifecycle_support": "open-source-rds-extended-support",
+            "engine_version": "16.3",
+            "engine_version_actual": "16.3",
+            "final_snapshot_identifier": null,
+            "hosted_zone_id": "Z2R2ITUGPM61AM",
+            "iam_database_authentication_enabled": false,
+            "id": "db-RKFUQOA3XRAB3OAYFQ73KRXB3M",
+            "identifier": "msbn-dev-postgres",
+            "identifier_prefix": "",
+            "instance_class": "db.t3.micro",
+            "iops": 0,
+            "kms_key_id": "arn:aws:kms:us-east-1:526958953802:key/22f29e34-902c-4a9c-80e0-989ce262a346",
+            "latest_restorable_time": "2026-04-15T19:24:49Z",
+            "license_model": "postgresql-license",
+            "listener_endpoint": [],
+            "maintenance_window": "sat:04:57-sat:05:27",
+            "manage_master_user_password": null,
+            "master_user_secret": [],
+            "master_user_secret_kms_key_id": null,
+            "max_allocated_storage": 100,
+            "monitoring_interval": 0,
+            "monitoring_role_arn": "",
+            "multi_az": false,
+            "nchar_character_set_name": "",
+            "network_type": "IPV4",
+            "option_group_name": "default:postgres-16",
+            "parameter_group_name": "default.postgres16",
+            "password": "MsbN9862!DBPass2026",
+            "password_wo": null,
+            "password_wo_version": null,
+            "performance_insights_enabled": false,
+            "performance_insights_kms_key_id": "",
+            "performance_insights_retention_period": 0,
+            "port": 5432,
+            "publicly_accessible": false,
+            "replica_mode": "",
+            "replicas": [],
+            "replicate_source_db": "",
+            "resource_id": "db-RKFUQOA3XRAB3OAYFQ73KRXB3M",
+            "restore_to_point_in_time": [],
+            "s3_import": [],
+            "skip_final_snapshot": true,
+            "snapshot_identifier": null,
+            "status": "available",
+            "storage_encrypted": true,
+            "storage_throughput": 0,
+            "storage_type": "gp2",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "timeouts": null,
+            "timezone": "",
+            "upgrade_storage_config": null,
+            "username": "msbn_user",
+            "vpc_security_group_ids": [
+              "sg-014ecf7c0335ac74f"
+            ]
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "password"
+              }
+            ],
+            [
+              {
+                "type": "get_attr",
+                "value": "password_wo"
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjozMDAwMDAwMDAwMDAwLCJkZWxldGUiOjM2MDAwMDAwMDAwMDAsInVwZGF0ZSI6NDgwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMiJ9",
+          "dependencies": [
+            "aws_security_group.alb",
+            "aws_security_group.api",
+            "aws_security_group.rds",
+            "aws_subnet.private",
+            "aws_vpc.main",
+            "data.aws_availability_zones.available",
+            "module.database.aws_db_subnet_group.this"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.database",
+      "mode": "managed",
+      "type": "aws_db_subnet_group",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:rds:us-east-1:526958953802:subgrp:msbn-dev-db-subnet",
+            "description": "Managed by Terraform",
+            "id": "msbn-dev-db-subnet",
+            "name": "msbn-dev-db-subnet",
+            "name_prefix": "",
+            "subnet_ids": [
+              "subnet-010f49219d6777d9f",
+              "subnet-0993ba19acbadc004"
+            ],
+            "supported_network_types": [
+              "IPV4"
+            ],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "vpc_id": "vpc-0d59fffaf195535ad"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_subnet.private",
+            "aws_vpc.main",
+            "data.aws_availability_zones.available"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.fraud_analyzer_lambda",
+      "mode": "data",
+      "type": "archive_file",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/archive\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "exclude_symlink_directories": null,
+            "excludes": null,
+            "id": "9a4c492479ae1faa121055e560596f33daeac4da",
+            "output_base64sha256": "lMC5096x/3DJxV6px7lNrZaAsRO2eeww2q7x5lvQB9g=",
+            "output_base64sha512": "G5PwR54J/CL0giDKCEqA2eN2igEjx/10uMuOtBF8NA2N1OqbKhO6TG8hHTxP/qAge8DISMiRJ3WDEYwp7tHJIQ==",
+            "output_file_mode": null,
+            "output_md5": "39dcbfd45bdcbf982451a0506be08078",
+            "output_path": "/tmp/msbn-dev-fraud-analyzer.zip",
+            "output_sha": "9a4c492479ae1faa121055e560596f33daeac4da",
+            "output_sha256": "94c0b9d3deb1ff70c9c55ea9c7b94dad9680b113b679ec30daaef1e65bd007d8",
+            "output_sha512": "1b93f0479e09fc22f48220ca084a80d9e3768a0123c7fd74b8cb8eb4117c340d8dd4ea9b2a13ba4c6f211d3c4ffea0207bc0c848c891277583118c29eed1c921",
+            "output_size": 1390,
+            "source": [],
+            "source_content": null,
+            "source_content_filename": null,
+            "source_dir": "./../lambdas/fraud_analyzer",
+            "source_file": null,
+            "type": "zip"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "module": "module.fraud_analyzer_lambda",
+      "mode": "managed",
+      "type": "aws_cloudwatch_log_group",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:logs:us-east-1:526958953802:log-group:/aws/lambda/msbn-dev-fraud-analyzer",
+            "id": "/aws/lambda/msbn-dev-fraud-analyzer",
+            "kms_key_id": "",
+            "log_group_class": "STANDARD",
+            "name": "/aws/lambda/msbn-dev-fraud-analyzer",
+            "name_prefix": "",
+            "retention_in_days": 14,
+            "skip_destroy": false,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "module": "module.fraud_analyzer_lambda",
+      "mode": "managed",
+      "type": "aws_iam_role",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:iam::526958953802:role/msbn-dev-fraud-analyzer-role",
+            "assume_role_policy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"lambda.amazonaws.com\"}}],\"Version\":\"2012-10-17\"}",
+            "create_date": "2026-04-15T19:02:22Z",
+            "description": "",
+            "force_detach_policies": false,
+            "id": "msbn-dev-fraud-analyzer-role",
+            "inline_policy": [
+              {
+                "name": "msbn-dev-fraud-analyzer-policy",
+                "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"bedrock:InvokeModel\",\"bedrock:InvokeModelWithResponseStream\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-haiku-20240307-v1:0\"}]}"
+              }
+            ],
+            "managed_policy_arns": [
+              "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+            ],
+            "max_session_duration": 3600,
+            "name": "msbn-dev-fraud-analyzer-role",
+            "name_prefix": "",
+            "path": "/",
+            "permissions_boundary": "",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "unique_id": "AROAXVMJTQVFC5NV3USRD"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "module": "module.fraud_analyzer_lambda",
+      "mode": "managed",
+      "type": "aws_iam_role_policy",
+      "name": "custom",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "id": "msbn-dev-fraud-analyzer-role:msbn-dev-fraud-analyzer-policy",
+            "name": "msbn-dev-fraud-analyzer-policy",
+            "name_prefix": "",
+            "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"bedrock:InvokeModel\",\"bedrock:InvokeModelWithResponseStream\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-haiku-20240307-v1:0\"}]}",
+            "role": "msbn-dev-fraud-analyzer-role"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.fraud_analyzer_lambda.aws_iam_role.this"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.fraud_analyzer_lambda",
+      "mode": "managed",
+      "type": "aws_iam_role_policy_attachment",
+      "name": "basic",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "msbn-dev-fraud-analyzer-role-2026041519022368810000000a",
+            "policy_arn": "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+            "role": "msbn-dev-fraud-analyzer-role"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.fraud_analyzer_lambda.aws_iam_role.this"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.fraud_analyzer_lambda",
+      "mode": "managed",
+      "type": "aws_lambda_function",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "architectures": [
+              "x86_64"
+            ],
+            "arn": "arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-fraud-analyzer",
+            "code_sha256": "lMC5096x/3DJxV6px7lNrZaAsRO2eeww2q7x5lvQB9g=",
+            "code_signing_config_arn": "",
+            "dead_letter_config": [],
+            "description": "",
+            "environment": [
+              {
+                "variables": {
+                  "AWS_REGION_NAME": "us-east-1",
+                  "BEDROCK_MODEL_ID": "anthropic.claude-3-haiku-20240307-v1:0",
+                  "ENV": "dev"
+                }
+              }
+            ],
+            "ephemeral_storage": [
+              {
+                "size": 512
+              }
+            ],
+            "file_system_config": [],
+            "filename": "/tmp/msbn-dev-fraud-analyzer.zip",
+            "function_name": "msbn-dev-fraud-analyzer",
+            "handler": "handler.lambda_handler",
+            "id": "msbn-dev-fraud-analyzer",
+            "image_config": [],
+            "image_uri": "",
+            "invoke_arn": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-fraud-analyzer/invocations",
+            "kms_key_arn": "",
+            "last_modified": "2026-04-15T19:02:32.529+0000",
+            "layers": [],
+            "logging_config": [
+              {
+                "application_log_level": "",
+                "log_format": "Text",
+                "log_group": "/aws/lambda/msbn-dev-fraud-analyzer",
+                "system_log_level": ""
+              }
+            ],
+            "memory_size": 256,
+            "package_type": "Zip",
+            "publish": false,
+            "qualified_arn": "arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-fraud-analyzer:$LATEST",
+            "qualified_invoke_arn": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-fraud-analyzer:$LATEST/invocations",
+            "replace_security_groups_on_destroy": null,
+            "replacement_security_group_ids": null,
+            "reserved_concurrent_executions": -1,
+            "role": "arn:aws:iam::526958953802:role/msbn-dev-fraud-analyzer-role",
+            "runtime": "python3.12",
+            "s3_bucket": null,
+            "s3_key": null,
+            "s3_object_version": null,
+            "signing_job_arn": "",
+            "signing_profile_version_arn": "",
+            "skip_destroy": false,
+            "snap_start": [],
+            "source_code_hash": "lMC5096x/3DJxV6px7lNrZaAsRO2eeww2q7x5lvQB9g=",
+            "source_code_size": 1390,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "timeout": 120,
+            "timeouts": null,
+            "tracing_config": [
+              {
+                "mode": "PassThrough"
+              }
+            ],
+            "version": "$LATEST",
+            "vpc_config": []
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6NjAwMDAwMDAwMDAwLCJ1cGRhdGUiOjYwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "module.fraud_analyzer_lambda.aws_iam_role.this",
+            "module.fraud_analyzer_lambda.data.archive_file.this"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.keycloak_service",
+      "mode": "managed",
+      "type": "aws_ecs_service",
+      "name": "keycloak",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "alarms": [],
+            "availability_zone_rebalancing": "DISABLED",
+            "capacity_provider_strategy": [],
+            "cluster": "arn:aws:ecs:us-east-1:526958953802:cluster/msbn-dev-cluster",
+            "deployment_circuit_breaker": [
+              {
+                "enable": false,
+                "rollback": false
+              }
+            ],
+            "deployment_controller": [
+              {
+                "type": "ECS"
+              }
+            ],
+            "deployment_maximum_percent": 200,
+            "deployment_minimum_healthy_percent": 100,
+            "desired_count": 1,
+            "enable_ecs_managed_tags": false,
+            "enable_execute_command": false,
+            "force_delete": null,
+            "force_new_deployment": null,
+            "health_check_grace_period_seconds": 0,
+            "iam_role": "/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS",
+            "id": "arn:aws:ecs:us-east-1:526958953802:service/msbn-dev-cluster/msbn-dev-keycloak",
+            "launch_type": "FARGATE",
+            "load_balancer": [
+              {
+                "container_name": "keycloak",
+                "container_port": 8080,
+                "elb_name": "",
+                "target_group_arn": "arn:aws:elasticloadbalancing:us-east-1:526958953802:targetgroup/msbn-dev-kc-tg/2ff05834dd307df0"
+              }
+            ],
+            "name": "msbn-dev-keycloak",
+            "network_configuration": [
+              {
+                "assign_public_ip": false,
+                "security_groups": [
+                  "sg-0d62c7e24071536bb"
+                ],
+                "subnets": [
+                  "subnet-010f49219d6777d9f",
+                  "subnet-0993ba19acbadc004"
+                ]
+              }
+            ],
+            "ordered_placement_strategy": [],
+            "placement_constraints": [],
+            "platform_version": "LATEST",
+            "propagate_tags": "NONE",
+            "scheduling_strategy": "REPLICA",
+            "service_connect_configuration": [],
+            "service_registries": [],
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "task_definition": "arn:aws:ecs:us-east-1:526958953802:task-definition/msbn-dev-keycloak:1",
+            "timeouts": null,
+            "triggers": {},
+            "volume_configuration": [],
+            "vpc_lattice_configurations": [],
+            "wait_for_steady_state": false
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjoxMjAwMDAwMDAwMDAwLCJkZWxldGUiOjEyMDAwMDAwMDAwMDAsInVwZGF0ZSI6MTIwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMSJ9",
+          "dependencies": [
+            "aws_cloudwatch_log_group.keycloak",
+            "aws_ecr_repository.keycloak",
+            "aws_ecs_cluster.main",
+            "aws_iam_role.ecs_task_execution",
+            "aws_lb_target_group.keycloak",
+            "aws_secretsmanager_secret.keycloak_admin",
+            "aws_security_group.alb",
+            "aws_security_group.api",
+            "aws_security_group.keycloak",
+            "aws_subnet.private",
+            "aws_vpc.main",
+            "data.aws_availability_zones.available",
+            "module.keycloak_service.aws_ecs_task_definition.keycloak"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.keycloak_service",
+      "mode": "managed",
+      "type": "aws_ecs_task_definition",
+      "name": "keycloak",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 1,
+          "attributes": {
+            "arn": "arn:aws:ecs:us-east-1:526958953802:task-definition/msbn-dev-keycloak:1",
+            "arn_without_revision": "arn:aws:ecs:us-east-1:526958953802:task-definition/msbn-dev-keycloak",
+            "container_definitions": "[{\"environment\":[{\"name\":\"KC_HEALTH_ENABLED\",\"value\":\"true\"},{\"name\":\"KC_HOSTNAME_STRICT\",\"value\":\"false\"},{\"name\":\"KC_HOSTNAME_STRICT_HTTPS\",\"value\":\"false\"},{\"name\":\"KC_HTTP_ENABLED\",\"value\":\"true\"},{\"name\":\"KC_LOG_LEVEL\",\"value\":\"INFO\"},{\"name\":\"KEYCLOAK_ADMIN\",\"value\":\"admin\"}],\"essential\":true,\"image\":\"526958953802.dkr.ecr.us-east-1.amazonaws.com/msbn-dev-keycloak:latest\",\"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-group\":\"/ecs/msbn-dev/keycloak\",\"awslogs-region\":\"us-east-1\",\"awslogs-stream-prefix\":\"ecs\"}},\"mountPoints\":[],\"name\":\"keycloak\",\"portMappings\":[{\"containerPort\":8080,\"hostPort\":8080,\"protocol\":\"tcp\"}],\"secrets\":[{\"name\":\"KEYCLOAK_ADMIN_PASSWORD\",\"valueFrom\":\"arn:aws:secretsmanager:us-east-1:526958953802:secret:msbn-dev/keycloak-admin-password-dt9BXG\"}],\"systemControls\":[],\"volumesFrom\":[]}]",
+            "cpu": "512",
+            "enable_fault_injection": false,
+            "ephemeral_storage": [],
+            "execution_role_arn": "arn:aws:iam::526958953802:role/msbn-dev-ecs-execution-role",
+            "family": "msbn-dev-keycloak",
+            "id": "msbn-dev-keycloak",
+            "inference_accelerator": [],
+            "ipc_mode": "",
+            "memory": "1024",
+            "network_mode": "awsvpc",
+            "pid_mode": "",
+            "placement_constraints": [],
+            "proxy_configuration": [],
+            "requires_compatibilities": [
+              "FARGATE"
+            ],
+            "revision": 1,
+            "runtime_platform": [],
+            "skip_destroy": false,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "task_role_arn": "",
+            "track_latest": false,
+            "volume": []
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJzY2hlbWFfdmVyc2lvbiI6IjEifQ==",
+          "dependencies": [
+            "aws_cloudwatch_log_group.keycloak",
+            "aws_ecr_repository.keycloak",
+            "aws_iam_role.ecs_task_execution",
+            "aws_secretsmanager_secret.keycloak_admin"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.pipeline_orchestrator_lambda",
+      "mode": "data",
+      "type": "archive_file",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/archive\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "exclude_symlink_directories": null,
+            "excludes": null,
+            "id": "757570a34ebed0223bed8c27dabbb492e188ee21",
+            "output_base64sha256": "gIUfwmFXm8syGQUk0T/GON09X06MH53UTVRlJIKEB3Y=",
+            "output_base64sha512": "Kpxr8TRJtZPDYQXNi4CjJOAfQnLqnF/mM1A+hF75+ECYcR2c3CymKWSlrs1C2mU5Z3f4D2xV3S8h9tFgBtxlIw==",
+            "output_file_mode": null,
+            "output_md5": "ab74e89cbc6a1b8da62d1715ed33167b",
+            "output_path": "/tmp/msbn-dev-pipeline-orchestrator.zip",
+            "output_sha": "757570a34ebed0223bed8c27dabbb492e188ee21",
+            "output_sha256": "80851fc261579bcb32190524d13fc638dd3d5f4e8c1f9dd44d54652482840776",
+            "output_sha512": "2a9c6bf13449b593c36105cd8b80a324e01f4272ea9c5fe633503e845ef9f84098711d9cdc2ca62964a5aecd42da65396777f80f6c55dd2f21f6d16006dc6523",
+            "output_size": 5862,
+            "source": [],
+            "source_content": null,
+            "source_content_filename": null,
+            "source_dir": "./../lambdas/pipeline_orchestrator",
+            "source_file": null,
+            "type": "zip"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "module": "module.pipeline_orchestrator_lambda",
+      "mode": "managed",
+      "type": "aws_cloudwatch_log_group",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:logs:us-east-1:526958953802:log-group:/aws/lambda/msbn-dev-pipeline-orchestrator",
+            "id": "/aws/lambda/msbn-dev-pipeline-orchestrator",
+            "kms_key_id": "",
+            "log_group_class": "STANDARD",
+            "name": "/aws/lambda/msbn-dev-pipeline-orchestrator",
+            "name_prefix": "",
+            "retention_in_days": 14,
+            "skip_destroy": false,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "module": "module.pipeline_orchestrator_lambda",
+      "mode": "managed",
+      "type": "aws_iam_role",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:iam::526958953802:role/msbn-dev-pipeline-orchestrator-role",
+            "assume_role_policy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"lambda.amazonaws.com\"}}],\"Version\":\"2012-10-17\"}",
+            "create_date": "2026-04-15T19:02:22Z",
+            "description": "",
+            "force_detach_policies": false,
+            "id": "msbn-dev-pipeline-orchestrator-role",
+            "inline_policy": [
+              {
+                "name": "msbn-dev-pipeline-orchestrator-policy",
+                "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"textract:DetectDocumentText\",\"textract:AnalyzeDocument\",\"textract:StartDocumentTextDetection\",\"textract:GetDocumentTextDetection\"],\"Effect\":\"Allow\",\"Resource\":\"*\"},{\"Action\":[\"rekognition:DetectLabels\",\"rekognition:DetectText\",\"rekognition:DetectCustomLabels\",\"rekognition:DetectFaces\"],\"Effect\":\"Allow\",\"Resource\":\"*\"},{\"Action\":[\"bedrock:InvokeModel\",\"bedrock:InvokeModelWithResponseStream\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:bedrock:us-east-1::foundation-model/*\"},{\"Action\":[\"s3:GetObject\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::msbn-dev-documents-526958953802/*\"},{\"Action\":[\"s3:GetObject\",\"s3:PutObject\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::msbn-dev-ml-data-526958953802/*\"},{\"Action\":[\"s3:ListBucket\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::msbn-dev-ml-data-526958953802\"}]}"
+              }
+            ],
+            "managed_policy_arns": [
+              "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+            ],
+            "max_session_duration": 3600,
+            "name": "msbn-dev-pipeline-orchestrator-role",
+            "name_prefix": "",
+            "path": "/",
+            "permissions_boundary": "",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "unique_id": "AROAXVMJTQVFPBA3W3IRD"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "module": "module.pipeline_orchestrator_lambda",
+      "mode": "managed",
+      "type": "aws_iam_role_policy",
+      "name": "custom",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "id": "msbn-dev-pipeline-orchestrator-role:msbn-dev-pipeline-orchestrator-policy",
+            "name": "msbn-dev-pipeline-orchestrator-policy",
+            "name_prefix": "",
+            "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"textract:DetectDocumentText\",\"textract:AnalyzeDocument\",\"textract:StartDocumentTextDetection\",\"textract:GetDocumentTextDetection\"],\"Effect\":\"Allow\",\"Resource\":\"*\"},{\"Action\":[\"rekognition:DetectLabels\",\"rekognition:DetectText\",\"rekognition:DetectCustomLabels\",\"rekognition:DetectFaces\"],\"Effect\":\"Allow\",\"Resource\":\"*\"},{\"Action\":[\"bedrock:InvokeModel\",\"bedrock:InvokeModelWithResponseStream\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:bedrock:us-east-1::foundation-model/*\"},{\"Action\":[\"s3:GetObject\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::msbn-dev-documents-526958953802/*\"},{\"Action\":[\"s3:GetObject\",\"s3:PutObject\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::msbn-dev-ml-data-526958953802/*\"},{\"Action\":[\"s3:ListBucket\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::msbn-dev-ml-data-526958953802\"}]}",
+            "role": "msbn-dev-pipeline-orchestrator-role"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_s3_bucket.documents",
+            "aws_s3_bucket.ml_data",
+            "module.pipeline_orchestrator_lambda.aws_iam_role.this"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.pipeline_orchestrator_lambda",
+      "mode": "managed",
+      "type": "aws_iam_role_policy_attachment",
+      "name": "basic",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "msbn-dev-pipeline-orchestrator-role-2026041519022382780000000b",
+            "policy_arn": "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+            "role": "msbn-dev-pipeline-orchestrator-role"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.pipeline_orchestrator_lambda.aws_iam_role.this"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.pipeline_orchestrator_lambda",
+      "mode": "managed",
+      "type": "aws_lambda_function",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "architectures": [
+              "x86_64"
+            ],
+            "arn": "arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-pipeline-orchestrator",
+            "code_sha256": "gIUfwmFXm8syGQUk0T/GON09X06MH53UTVRlJIKEB3Y=",
+            "code_signing_config_arn": "",
+            "dead_letter_config": [],
+            "description": "",
+            "environment": [
+              {
+                "variables": {
+                  "API_CALLBACK_SECRET": "2e01d5aeaa5cd3c06c16e5b2cdae8a6a16a2fba43571465623fb1954ce1c6d03",
+                  "API_INTERNAL_URL": "",
+                  "AWS_REGION_NAME": "us-east-1",
+                  "BEDROCK_MODEL_ID": "anthropic.claude-3-haiku-20240307-v1:0",
+                  "REKOGNITION_PROJECT_VERSION_ARN": "",
+                  "S3_DOCUMENTS_BUCKET": "msbn-dev-documents-526958953802",
+                  "S3_ML_DATA_BUCKET": "msbn-dev-ml-data-526958953802"
+                }
+              }
+            ],
+            "ephemeral_storage": [
+              {
+                "size": 512
+              }
+            ],
+            "file_system_config": [],
+            "filename": "/tmp/msbn-dev-pipeline-orchestrator.zip",
+            "function_name": "msbn-dev-pipeline-orchestrator",
+            "handler": "handler.lambda_handler",
+            "id": "msbn-dev-pipeline-orchestrator",
+            "image_config": [],
+            "image_uri": "",
+            "invoke_arn": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-pipeline-orchestrator/invocations",
+            "kms_key_arn": "",
+            "last_modified": "2026-04-15T19:02:51.346+0000",
+            "layers": [],
+            "logging_config": [
+              {
+                "application_log_level": "",
+                "log_format": "Text",
+                "log_group": "/aws/lambda/msbn-dev-pipeline-orchestrator",
+                "system_log_level": ""
+              }
+            ],
+            "memory_size": 512,
+            "package_type": "Zip",
+            "publish": false,
+            "qualified_arn": "arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-pipeline-orchestrator:$LATEST",
+            "qualified_invoke_arn": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-pipeline-orchestrator:$LATEST/invocations",
+            "replace_security_groups_on_destroy": null,
+            "replacement_security_group_ids": null,
+            "reserved_concurrent_executions": -1,
+            "role": "arn:aws:iam::526958953802:role/msbn-dev-pipeline-orchestrator-role",
+            "runtime": "python3.12",
+            "s3_bucket": null,
+            "s3_key": null,
+            "s3_object_version": null,
+            "signing_job_arn": "",
+            "signing_profile_version_arn": "",
+            "skip_destroy": false,
+            "snap_start": [],
+            "source_code_hash": "gIUfwmFXm8syGQUk0T/GON09X06MH53UTVRlJIKEB3Y=",
+            "source_code_size": 5862,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "timeout": 600,
+            "timeouts": null,
+            "tracing_config": [
+              {
+                "mode": "PassThrough"
+              }
+            ],
+            "version": "$LATEST",
+            "vpc_config": []
+          },
+          "sensitive_attributes": [
+            [
+              {
+                "type": "get_attr",
+                "value": "environment"
+              },
+              {
+                "type": "index",
+                "value": {
+                  "value": 0,
+                  "type": "number"
+                }
+              },
+              {
+                "type": "get_attr",
+                "value": "variables"
+              },
+              {
+                "type": "index",
+                "value": {
+                  "value": "API_CALLBACK_SECRET",
+                  "type": "string"
+                }
+              }
+            ]
+          ],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6NjAwMDAwMDAwMDAwLCJ1cGRhdGUiOjYwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "aws_s3_bucket.documents",
+            "aws_s3_bucket.ml_data",
+            "module.pipeline_orchestrator_lambda.aws_iam_role.this",
+            "module.pipeline_orchestrator_lambda.data.archive_file.this"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.rekognition_lambda",
+      "mode": "data",
+      "type": "archive_file",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/archive\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "exclude_symlink_directories": null,
+            "excludes": null,
+            "id": "31c538e64b57e8cbdfa562a4a3d82c07091aa3fd",
+            "output_base64sha256": "80rqEWftkRDhCC6cB/PkwCZMhkGZqEEu5tgTSTl9t1E=",
+            "output_base64sha512": "4wAI5YonDk7pQAnsdbX9Y//15VM0fMQ+crZPUVo6A5vsi0aQHV9rYnOFCxCpCCoal8BBB2xM7rZCcwBDoafopg==",
+            "output_file_mode": null,
+            "output_md5": "b3f13774c1febdeef8ae29aad45a8ae7",
+            "output_path": "/tmp/msbn-dev-rekognition-checker.zip",
+            "output_sha": "31c538e64b57e8cbdfa562a4a3d82c07091aa3fd",
+            "output_sha256": "f34aea1167ed9110e1082e9c07f3e4c0264c864199a8412ee6d81349397db751",
+            "output_sha512": "e30008e58a270e4ee94009ec75b5fd63fff5e553347cc43e72b64f515a3a039bec8b46901d5f6b6273850b10a9082a1a97c041076c4ceeb642730043a1a7e8a6",
+            "output_size": 1177,
+            "source": [],
+            "source_content": null,
+            "source_content_filename": null,
+            "source_dir": "./../lambdas/rekognition_checker",
+            "source_file": null,
+            "type": "zip"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "module": "module.rekognition_lambda",
+      "mode": "managed",
+      "type": "aws_cloudwatch_log_group",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:logs:us-east-1:526958953802:log-group:/aws/lambda/msbn-dev-rekognition-checker",
+            "id": "/aws/lambda/msbn-dev-rekognition-checker",
+            "kms_key_id": "",
+            "log_group_class": "STANDARD",
+            "name": "/aws/lambda/msbn-dev-rekognition-checker",
+            "name_prefix": "",
+            "retention_in_days": 14,
+            "skip_destroy": false,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "module": "module.rekognition_lambda",
+      "mode": "managed",
+      "type": "aws_iam_role",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:iam::526958953802:role/msbn-dev-rekognition-checker-role",
+            "assume_role_policy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"lambda.amazonaws.com\"}}],\"Version\":\"2012-10-17\"}",
+            "create_date": "2026-04-15T19:02:22Z",
+            "description": "",
+            "force_detach_policies": false,
+            "id": "msbn-dev-rekognition-checker-role",
+            "inline_policy": [
+              {
+                "name": "msbn-dev-rekognition-checker-policy",
+                "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"rekognition:DetectText\",\"rekognition:DetectLabels\",\"rekognition:DetectFaces\"],\"Effect\":\"Allow\",\"Resource\":\"*\"},{\"Action\":[\"s3:GetObject\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::msbn-dev-documents-526958953802/*\"}]}"
+              }
+            ],
+            "managed_policy_arns": [
+              "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+            ],
+            "max_session_duration": 3600,
+            "name": "msbn-dev-rekognition-checker-role",
+            "name_prefix": "",
+            "path": "/",
+            "permissions_boundary": "",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "unique_id": "AROAXVMJTQVFEXYZYIIBG"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "module": "module.rekognition_lambda",
+      "mode": "managed",
+      "type": "aws_iam_role_policy",
+      "name": "custom",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "id": "msbn-dev-rekognition-checker-role:msbn-dev-rekognition-checker-policy",
+            "name": "msbn-dev-rekognition-checker-policy",
+            "name_prefix": "",
+            "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"rekognition:DetectText\",\"rekognition:DetectLabels\",\"rekognition:DetectFaces\"],\"Effect\":\"Allow\",\"Resource\":\"*\"},{\"Action\":[\"s3:GetObject\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::msbn-dev-documents-526958953802/*\"}]}",
+            "role": "msbn-dev-rekognition-checker-role"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_s3_bucket.documents",
+            "module.rekognition_lambda.aws_iam_role.this"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.rekognition_lambda",
+      "mode": "managed",
+      "type": "aws_iam_role_policy_attachment",
+      "name": "basic",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "msbn-dev-rekognition-checker-role-20260415190223491500000009",
+            "policy_arn": "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+            "role": "msbn-dev-rekognition-checker-role"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.rekognition_lambda.aws_iam_role.this"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.rekognition_lambda",
+      "mode": "managed",
+      "type": "aws_lambda_function",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "architectures": [
+              "x86_64"
+            ],
+            "arn": "arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-rekognition-checker",
+            "code_sha256": "80rqEWftkRDhCC6cB/PkwCZMhkGZqEEu5tgTSTl9t1E=",
+            "code_signing_config_arn": "",
+            "dead_letter_config": [],
+            "description": "",
+            "environment": [
+              {
+                "variables": {
+                  "AWS_REGION_NAME": "us-east-1",
+                  "ENV": "dev",
+                  "S3_BUCKET": "msbn-dev-documents-526958953802"
+                }
+              }
+            ],
+            "ephemeral_storage": [
+              {
+                "size": 512
+              }
+            ],
+            "file_system_config": [],
+            "filename": "/tmp/msbn-dev-rekognition-checker.zip",
+            "function_name": "msbn-dev-rekognition-checker",
+            "handler": "handler.lambda_handler",
+            "id": "msbn-dev-rekognition-checker",
+            "image_config": [],
+            "image_uri": "",
+            "invoke_arn": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-rekognition-checker/invocations",
+            "kms_key_arn": "",
+            "last_modified": "2026-04-15T19:02:38.904+0000",
+            "layers": [],
+            "logging_config": [
+              {
+                "application_log_level": "",
+                "log_format": "Text",
+                "log_group": "/aws/lambda/msbn-dev-rekognition-checker",
+                "system_log_level": ""
+              }
+            ],
+            "memory_size": 256,
+            "package_type": "Zip",
+            "publish": false,
+            "qualified_arn": "arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-rekognition-checker:$LATEST",
+            "qualified_invoke_arn": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-rekognition-checker:$LATEST/invocations",
+            "replace_security_groups_on_destroy": null,
+            "replacement_security_group_ids": null,
+            "reserved_concurrent_executions": -1,
+            "role": "arn:aws:iam::526958953802:role/msbn-dev-rekognition-checker-role",
+            "runtime": "python3.12",
+            "s3_bucket": null,
+            "s3_key": null,
+            "s3_object_version": null,
+            "signing_job_arn": "",
+            "signing_profile_version_arn": "",
+            "skip_destroy": false,
+            "snap_start": [],
+            "source_code_hash": "80rqEWftkRDhCC6cB/PkwCZMhkGZqEEu5tgTSTl9t1E=",
+            "source_code_size": 1177,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "timeout": 60,
+            "timeouts": null,
+            "tracing_config": [
+              {
+                "mode": "PassThrough"
+              }
+            ],
+            "version": "$LATEST",
+            "vpc_config": []
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6NjAwMDAwMDAwMDAwLCJ1cGRhdGUiOjYwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "aws_s3_bucket.documents",
+            "module.rekognition_lambda.aws_iam_role.this",
+            "module.rekognition_lambda.data.archive_file.this"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.textract_lambda",
+      "mode": "data",
+      "type": "archive_file",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/archive\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "exclude_symlink_directories": null,
+            "excludes": null,
+            "id": "7af3b131a26d74c2d165d211505c24ccc43bd325",
+            "output_base64sha256": "+u6JT10jQXfd2iIMvHbEGUMMfN1kO1CqCGjAHjF2z3U=",
+            "output_base64sha512": "tPodTE3YcJWb4FbGRVgyRUnIyi6pbaKiHVrBfA8d3GsEgDbdUSGL3I0yCmc0eJj4Kd7y15p0Bh57LjVgREKiyg==",
+            "output_file_mode": null,
+            "output_md5": "f8da4ce55bd0b9c45d97eb185a54b17f",
+            "output_path": "/tmp/msbn-dev-textract-processor.zip",
+            "output_sha": "7af3b131a26d74c2d165d211505c24ccc43bd325",
+            "output_sha256": "faee894f5d234177ddda220cbc76c419430c7cdd643b50aa0868c01e3176cf75",
+            "output_sha512": "b4fa1d4c4dd870959be056c64558324549c8ca2ea96da2a21d5ac17c0f1ddc6b048036dd51218bdc8d320a67347898f829def2d79a74061e7b2e35604442a2ca",
+            "output_size": 793,
+            "source": [],
+            "source_content": null,
+            "source_content_filename": null,
+            "source_dir": "./../lambdas/textract_processor",
+            "source_file": null,
+            "type": "zip"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "module": "module.textract_lambda",
+      "mode": "managed",
+      "type": "aws_cloudwatch_log_group",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:logs:us-east-1:526958953802:log-group:/aws/lambda/msbn-dev-textract-processor",
+            "id": "/aws/lambda/msbn-dev-textract-processor",
+            "kms_key_id": "",
+            "log_group_class": "STANDARD",
+            "name": "/aws/lambda/msbn-dev-textract-processor",
+            "name_prefix": "",
+            "retention_in_days": 14,
+            "skip_destroy": false,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "module": "module.textract_lambda",
+      "mode": "managed",
+      "type": "aws_iam_role",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:iam::526958953802:role/msbn-dev-textract-processor-role",
+            "assume_role_policy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"lambda.amazonaws.com\"}}],\"Version\":\"2012-10-17\"}",
+            "create_date": "2026-04-15T19:02:22Z",
+            "description": "",
+            "force_detach_policies": false,
+            "id": "msbn-dev-textract-processor-role",
+            "inline_policy": [
+              {
+                "name": "msbn-dev-textract-processor-policy",
+                "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"textract:AnalyzeDocument\",\"textract:DetectDocumentText\",\"textract:StartDocumentTextDetection\",\"textract:GetDocumentTextDetection\"],\"Effect\":\"Allow\",\"Resource\":\"*\"},{\"Action\":[\"s3:GetObject\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::msbn-dev-documents-526958953802/*\"}]}"
+              }
+            ],
+            "managed_policy_arns": [
+              "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+            ],
+            "max_session_duration": 3600,
+            "name": "msbn-dev-textract-processor-role",
+            "name_prefix": "",
+            "path": "/",
+            "permissions_boundary": "",
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "unique_id": "AROAXVMJTQVFAZVDJCCMA"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "module": "module.textract_lambda",
+      "mode": "managed",
+      "type": "aws_iam_role_policy",
+      "name": "custom",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "index_key": 0,
+          "schema_version": 0,
+          "attributes": {
+            "id": "msbn-dev-textract-processor-role:msbn-dev-textract-processor-policy",
+            "name": "msbn-dev-textract-processor-policy",
+            "name_prefix": "",
+            "policy": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":[\"textract:AnalyzeDocument\",\"textract:DetectDocumentText\",\"textract:StartDocumentTextDetection\",\"textract:GetDocumentTextDetection\"],\"Effect\":\"Allow\",\"Resource\":\"*\"},{\"Action\":[\"s3:GetObject\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::msbn-dev-documents-526958953802/*\"}]}",
+            "role": "msbn-dev-textract-processor-role"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "aws_s3_bucket.documents",
+            "module.textract_lambda.aws_iam_role.this"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.textract_lambda",
+      "mode": "managed",
+      "type": "aws_iam_role_policy_attachment",
+      "name": "basic",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "msbn-dev-textract-processor-role-20260415190223429100000008",
+            "policy_arn": "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+            "role": "msbn-dev-textract-processor-role"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "dependencies": [
+            "module.textract_lambda.aws_iam_role.this"
+          ]
+        }
+      ]
+    },
+    {
+      "module": "module.textract_lambda",
+      "mode": "managed",
+      "type": "aws_lambda_function",
+      "name": "this",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "architectures": [
+              "x86_64"
+            ],
+            "arn": "arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-textract-processor",
+            "code_sha256": "+u6JT10jQXfd2iIMvHbEGUMMfN1kO1CqCGjAHjF2z3U=",
+            "code_signing_config_arn": "",
+            "dead_letter_config": [],
+            "description": "",
+            "environment": [
+              {
+                "variables": {
+                  "AWS_REGION_NAME": "us-east-1",
+                  "ENV": "dev",
+                  "S3_BUCKET": "msbn-dev-documents-526958953802"
+                }
+              }
+            ],
+            "ephemeral_storage": [
+              {
+                "size": 512
+              }
+            ],
+            "file_system_config": [],
+            "filename": "/tmp/msbn-dev-textract-processor.zip",
+            "function_name": "msbn-dev-textract-processor",
+            "handler": "handler.lambda_handler",
+            "id": "msbn-dev-textract-processor",
+            "image_config": [],
+            "image_uri": "",
+            "invoke_arn": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-textract-processor/invocations",
+            "kms_key_arn": "",
+            "last_modified": "2026-04-15T19:02:45.203+0000",
+            "layers": [],
+            "logging_config": [
+              {
+                "application_log_level": "",
+                "log_format": "Text",
+                "log_group": "/aws/lambda/msbn-dev-textract-processor",
+                "system_log_level": ""
+              }
+            ],
+            "memory_size": 512,
+            "package_type": "Zip",
+            "publish": false,
+            "qualified_arn": "arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-textract-processor:$LATEST",
+            "qualified_invoke_arn": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:526958953802:function:msbn-dev-textract-processor:$LATEST/invocations",
+            "replace_security_groups_on_destroy": null,
+            "replacement_security_group_ids": null,
+            "reserved_concurrent_executions": -1,
+            "role": "arn:aws:iam::526958953802:role/msbn-dev-textract-processor-role",
+            "runtime": "python3.12",
+            "s3_bucket": null,
+            "s3_key": null,
+            "s3_object_version": null,
+            "signing_job_arn": "",
+            "signing_profile_version_arn": "",
+            "skip_destroy": false,
+            "snap_start": [],
+            "source_code_hash": "+u6JT10jQXfd2iIMvHbEGUMMfN1kO1CqCGjAHjF2z3U=",
+            "source_code_size": 793,
+            "tags": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "tags_all": {
+              "Environment": "dev",
+              "ManagedBy": "terraform",
+              "Project": "msbn"
+            },
+            "timeout": 300,
+            "timeouts": null,
+            "tracing_config": [
+              {
+                "mode": "PassThrough"
+              }
+            ],
+            "version": "$LATEST",
+            "vpc_config": []
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6NjAwMDAwMDAwMDAwLCJ1cGRhdGUiOjYwMDAwMDAwMDAwMH19",
+          "dependencies": [
+            "aws_s3_bucket.documents",
+            "module.textract_lambda.aws_iam_role.this",
+            "module.textract_lambda.data.archive_file.this"
+          ]
+        }
+      ]
+    }
+  ],
+  "check_results": [
+    {
+      "object_kind": "var",
+      "config_addr": "var.env",
+      "status": "pass",
+      "objects": [
+        {
+          "object_addr": "var.env",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}

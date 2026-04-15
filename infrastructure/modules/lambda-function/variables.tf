@@ -38,13 +38,9 @@ variable "environment" {
 }
 
 variable "policy_statements" {
-  type = list(object({
-    Effect   = string
-    Action   = list(string)
-    Resource = string
-  }))
+  type        = list(any)
   default     = []
-  description = "Additional IAM policy statements to attach to the Lambda role"
+  description = "Additional IAM policy statements. Resource can be a string or list of strings."
 }
 
 variable "tags" {
