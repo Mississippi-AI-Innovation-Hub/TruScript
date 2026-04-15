@@ -1,0 +1,52 @@
+# Copy this file to terraform.tfvars and fill in all TODO values.
+# terraform.tfvars is gitignored — never commit real secrets.
+#
+# Usage:
+#   cd infrastructure/backend
+#   terraform init
+#   terraform apply -var-file="../environments/prod/terraform.tfvars"
+#
+#   cd infrastructure/frontend
+#   terraform init
+#   terraform apply -var-file="../environments/prod/terraform.tfvars"
+
+# ── AWS ──────────────────────────────────────────────────────────────────────
+aws_region     = "us-east-1"
+aws_account_id = "TODO: 123456789012"   # Your 12-digit AWS account ID
+
+# ── Environment ───────────────────────────────────────────────────────────────
+env = "prod"
+
+# ── Networking ────────────────────────────────────────────────────────────────
+vpc_cidr = "10.1.0.0/16"    # Different CIDR from dev to avoid VPC peering conflicts
+
+# ── Database ──────────────────────────────────────────────────────────────────
+db_name           = "msbn_db"
+db_username       = "msbn_user"
+db_password       = "TODO: replace-with-strong-password-min-16-chars"
+db_instance_class = "db.t3.small"   # Upgrade to db.t3.medium or higher for real load
+
+# ── App Secrets ───────────────────────────────────────────────────────────────
+app_secret_key          = "TODO: replace-with-32-char-minimum-secret-key-here"
+keycloak_client_secret  = "TODO: replace-with-keycloak-client-secret"
+keycloak_admin_password = "TODO: replace-with-keycloak-admin-password"
+
+# ── Container Images ──────────────────────────────────────────────────────────
+# Pin to specific image tags in prod — never use 'latest'
+api_image_tag      = "TODO: v1.0.0"
+keycloak_image_tag = "TODO: 24.0"
+
+# ── ECS Sizing ────────────────────────────────────────────────────────────────
+api_cpu           = 1024
+api_memory        = 2048
+api_desired_count = 2       # At least 2 for high availability
+keycloak_cpu      = 1024
+keycloak_memory   = 2048
+
+# ── ML ────────────────────────────────────────────────────────────────────────
+# Use more capable model in prod
+bedrock_model_id = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+allowed_origins    = "TODO: https://your-production-domain.com"
+log_retention_days = 30
