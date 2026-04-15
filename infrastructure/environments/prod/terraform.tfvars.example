@@ -47,6 +47,15 @@ keycloak_memory   = 2048
 # Use more capable model in prod
 bedrock_model_id = "anthropic.claude-3-5-sonnet-20241022-v2:0"
 
+# ARN of trained + deployed Rekognition Custom Labels model
+rekognition_project_version_arn = "TODO: arn:aws:rekognition:us-east-1:123456789012:project/msbn-prod-transcript-fraud/version/v1/..."
+
+# Internal ALB URL — fill in after first terraform apply
+api_internal_url = "TODO: http://msbn-prod-alb-xxxx.us-east-1.elb.amazonaws.com"
+
+# Shared secret for Lambda → FastAPI ML result callbacks
+api_callback_secret = "TODO: replace-with-32-char-min-callback-secret"
+
 # ── Misc ──────────────────────────────────────────────────────────────────────
 allowed_origins    = "TODO: https://your-production-domain.com"
 log_retention_days = 30

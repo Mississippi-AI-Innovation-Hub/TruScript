@@ -117,6 +117,24 @@ variable "bedrock_model_id" {
   description = "Bedrock foundation model ID for fraud analysis"
 }
 
+variable "rekognition_project_version_arn" {
+  type        = string
+  default     = ""
+  description = "ARN of a trained + deployed Rekognition Custom Labels model. Leave empty to skip custom classification and use standard labels only."
+}
+
+variable "api_internal_url" {
+  type        = string
+  default     = ""
+  description = "Internal ALB URL the pipeline Lambda uses to PATCH results back to FastAPI (e.g. http://msbn-dev-alb-xxxx.us-east-1.elb.amazonaws.com). Fill in after first terraform apply."
+}
+
+variable "api_callback_secret" {
+  type        = string
+  sensitive   = true
+  description = "Shared secret the Lambda sends as X-Lambda-Secret header when calling FastAPI. FastAPI verifies this to accept ML result callbacks."
+}
+
 # ── Misc ──────────────────────────────────────────────────────────────────────
 
 variable "allowed_origins" {

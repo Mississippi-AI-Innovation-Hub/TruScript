@@ -42,3 +42,27 @@ output "vpc_id" {
 output "private_subnet_ids" {
   value = aws_subnet.private[*].id
 }
+
+output "ml_data_bucket_name" {
+  value       = aws_s3_bucket.ml_data.id
+  description = "S3 bucket for ML training/test data and fraud rules"
+}
+
+output "pipeline_orchestrator_lambda_arn" {
+  value       = module.pipeline_orchestrator_lambda.function_arn
+  description = "Main ML pipeline Lambda — invoke this from FastAPI after document upload"
+}
+
+output "rekognition_project_arn" {
+  value       = aws_rekognition_project.transcript_fraud.arn
+  description = "Rekognition Custom Labels project ARN — used by train-rekognition-model.sh"
+}
+
+output "rekognition_s3_role_arn" {
+  value       = aws_iam_role.rekognition_s3.arn
+  description = "IAM role ARN that allows Rekognition to access the ML data bucket"
+}
+
+output "aws_region" {
+  value = var.aws_region
+}
