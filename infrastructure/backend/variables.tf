@@ -10,6 +10,11 @@ variable "aws_account_id" {
   description = "12-digit AWS account ID — used to name globally unique S3 buckets"
 }
 
+variable "aws_profile" {
+  type        = string
+  description = "AWS CLI profile name to use for authentication"
+}
+
 # ── Environment ───────────────────────────────────────────────────────────────
 
 variable "env" {

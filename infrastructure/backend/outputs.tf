@@ -54,7 +54,7 @@ output "pipeline_orchestrator_lambda_arn" {
 }
 
 output "rekognition_project_arn" {
-  value       = aws_rekognition_project.transcript_fraud.arn
+  value       = "arn:aws:rekognition:${var.aws_region}:${var.aws_account_id}:project/${local.name_prefix}-transcript-fraud/1776280793116"
   description = "Rekognition Custom Labels project ARN — used by train-rekognition-model.sh"
 }
 

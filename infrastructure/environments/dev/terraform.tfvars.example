@@ -16,6 +16,9 @@ aws_region = "us-east-1"
 # Get from: AWS Console top-right corner (12-digit number)
 aws_account_id = "TODO: 123456789012"
 
+# AWS CLI profile name — run "aws configure list-profiles" to see yours
+aws_profile = "msaih_IsbAdminsPS"
+
 # ── Environment ───────────────────────────────────────────────────────────────
 env = "dev"
 

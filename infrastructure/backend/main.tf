@@ -18,13 +18,8 @@ terraform {
 }
 
 provider "aws" {
-  region = var.aws_region
-  # Credentials are read from env vars or AWS CLI profile — never hardcode here.
-  # Set one of:
-  #   export AWS_ACCESS_KEY_ID=...
-  #   export AWS_SECRET_ACCESS_KEY=...
-  # OR
-  #   export AWS_PROFILE=your-profile-name
+  region  = var.aws_region
+  profile = var.aws_profile
 }
 
 locals {
@@ -119,7 +114,7 @@ resource "aws_route_table_association" "private" {
 
 resource "aws_security_group" "alb" {
   name        = "${local.name_prefix}-alb-sg"
-  description = "ALB — allow inbound HTTP/HTTPS"
+  description = "ALB - allow inbound HTTP/HTTPS"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -145,7 +140,7 @@ resource "aws_security_group" "alb" {
 
 resource "aws_security_group" "api" {
   name        = "${local.name_prefix}-api-sg"
-  description = "FastAPI ECS task — inbound from ALB only"
+  description = "FastAPI ECS task - inbound from ALB only"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -165,7 +160,7 @@ resource "aws_security_group" "api" {
 
 resource "aws_security_group" "keycloak" {
   name        = "${local.name_prefix}-keycloak-sg"
-  description = "Keycloak ECS task — inbound from ALB and API"
+  description = "Keycloak ECS task - inbound from ALB and API"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -185,7 +180,7 @@ resource "aws_security_group" "keycloak" {
 
 resource "aws_security_group" "rds" {
   name        = "${local.name_prefix}-rds-sg"
-  description = "RDS PostgreSQL — inbound from API only"
+  description = "RDS PostgreSQL - inbound from API only"
   vpc_id      = aws_vpc.main.id
 
   ingress {

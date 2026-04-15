@@ -49,16 +49,17 @@ resource "aws_s3_object" "fraud_rules" {
 }
 
 # ── Rekognition Custom Labels Project ─────────────────────────────────────────
-# Create the project container. Training is done separately via:
-#   scripts/train-rekognition-model.sh
+# NOTE: Managed outside Terraform due to a provider bug (auto_update field
+# returned as unknown after apply for CUSTOM_LABELS projects).
+#
+# The project was created via CLI. To recreate manually:
+#   aws rekognition create-project \
+#     --project-name msbn-dev-transcript-fraud \
+#     --feature CUSTOM_LABELS \
+#     --profile msaih_IsbAdminsPS
+#
 # After training, put the deployed model ARN in terraform.tfvars as
 # rekognition_project_version_arn.
-
-resource "aws_rekognition_project" "transcript_fraud" {
-  name        = "${local.name_prefix}-transcript-fraud"
-  auto_update = "ENABLED"
-  tags        = local.common_tags
-}
 
 # ── IAM — Rekognition access to ML data bucket ────────────────────────────────
 
@@ -96,14 +97,6 @@ resource "aws_iam_role_policy" "rekognition_s3" {
       },
     ]
   })
-}
-
-# ── CloudWatch Log Group for Pipeline Lambda ──────────────────────────────────
-
-resource "aws_cloudwatch_log_group" "pipeline_orchestrator" {
-  name              = "/aws/lambda/${local.name_prefix}-pipeline-orchestrator"
-  retention_in_days = var.log_retention_days
-  tags              = local.common_tags
 }
 
 # ── Lambda — Pipeline Orchestrator ───────────────────────────────────────────
@@ -166,14 +159,17 @@ module "pipeline_orchestrator_lambda" {
       Action   = ["s3:GetObject"]
       Resource = "${aws_s3_bucket.documents.arn}/*"
     },
-    # S3 — read rules + write results to ML bucket
+    # S3 — read/write objects in ML bucket
     {
       Effect   = "Allow"
-      Action   = ["s3:GetObject", "s3:PutObject", "s3:ListBucket"]
-      Resource = [
-        aws_s3_bucket.ml_data.arn,
-        "${aws_s3_bucket.ml_data.arn}/*",
-      ]
+      Action   = ["s3:GetObject", "s3:PutObject"]
+      Resource = "${aws_s3_bucket.ml_data.arn}/*"
+    },
+    # S3 — list ML bucket
+    {
+      Effect   = "Allow"
+      Action   = ["s3:ListBucket"]
+      Resource = aws_s3_bucket.ml_data.arn
     },
   ]
 
