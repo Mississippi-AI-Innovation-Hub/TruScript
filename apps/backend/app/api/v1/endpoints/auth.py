@@ -257,3 +257,94 @@ async def list_users(
         roles = await keycloak_admin.get_user_realm_roles(u["id"])
         result.append(_to_user_response(u, roles))
     return result
+
+
+@router.get(
+    "/staff",
+    response_model=list[UserResponse],
+    summary="List staff available for assignment",
+    description=(
+        "Returns all **enabled** users who hold an `msbn-*` role. "
+        "Accessible to any authenticated user (staff or admin) so that "
+        "reviewers can be selected when assigning a verification."
+    ),
+)
+async def list_staff(
+    _current_user: Annotated[dict, Security(get_current_user)],
+) -> list[UserResponse]:
+    """
+    Returns all enabled Keycloak users with at least one msbn-* realm role.
+    Used by the assignment UI to populate the reviewer dropdown.
+    Falls back to a mock list if Keycloak is not reachable (dev/demo mode).
+    """
+    try:
+        users = await keycloak_admin.list_users(search=None)
+    except Exception:
+        # Keycloak not yet configured — return a deterministic mock list for demo
+        return _mock_staff_list()
+
+    result: list[UserResponse] = []
+    for u in users:
+        if not u.get("enabled", True):
+            continue
+        try:
+            roles = await keycloak_admin.get_user_realm_roles(u["id"])
+        except Exception:
+            roles = []
+        msbn_roles = [r for r in roles if r.startswith("msbn-")]
+        if msbn_roles:
+            result.append(_to_user_response(u, roles))
+
+    # If Keycloak returned no users (realm not yet bootstrapped), fall back to mocks
+    return result if result else _mock_staff_list()
+
+
+def _mock_staff_list() -> list[UserResponse]:
+    """Deterministic demo staff — shown when Keycloak realm is not yet set up."""
+    return [
+        UserResponse(
+            id="mock-staff-001",
+            username="j.anderson",
+            email="j.anderson@msbn.gov",
+            first_name="Jamie",
+            last_name="Anderson",
+            enabled=True,
+            roles=["msbn-staff"],
+        ),
+        UserResponse(
+            id="mock-staff-002",
+            username="m.chen",
+            email="m.chen@msbn.gov",
+            first_name="Morgan",
+            last_name="Chen",
+            enabled=True,
+            roles=["msbn-staff"],
+        ),
+        UserResponse(
+            id="mock-staff-003",
+            username="r.patel",
+            email="r.patel@msbn.gov",
+            first_name="Riley",
+            last_name="Patel",
+            enabled=True,
+            roles=["msbn-staff"],
+        ),
+        UserResponse(
+            id="mock-admin-001",
+            username="s.williams",
+            email="s.williams@msbn.gov",
+            first_name="Sam",
+            last_name="Williams",
+            enabled=True,
+            roles=["msbn-admin"],
+        ),
+        UserResponse(
+            id="mock-staff-004",
+            username="t.nguyen",
+            email="t.nguyen@msbn.gov",
+            first_name="Taylor",
+            last_name="Nguyen",
+            enabled=True,
+            roles=["msbn-staff"],
+        ),
+    ]
