@@ -16,6 +16,9 @@ email-validator==2.2.0
 # File handling
 python-multipart==0.0.9
 
+# AWS SDK (S3 uploads, optional — upload endpoint gracefully skips if unavailable)
+boto3==1.34.144
+
 # Auth — Keycloak JWT validation
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4

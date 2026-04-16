@@ -88,6 +88,7 @@ services:
       - "8000:8000"
     volumes:
       - uploads:/tmp/msbn_uploads
+      - .:/app                   # live code reload — remove for production
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -10,20 +10,48 @@ import {
   ChevronDown,
   ChevronUp,
   ClipboardList,
+  FileText,
+  Image,
+  File,
+  User,
+  Download,
+  Eye,
+  X,
+  ZoomIn,
+  ZoomOut,
+  RotateCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { transcriptsApi } from '../api';
+import { transcriptsApi, authApi, apiClient } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { Spinner } from '../components/Spinner';
 import { ConfirmModal } from '../components/ConfirmModal';
-import type { VerificationStatus } from '../types';
+import type { UserResponse, VerificationStatus } from '../types';
 
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString('en-US', {
     month: 'short', day: 'numeric', year: 'numeric',
     hour: 'numeric', minute: '2-digit',
   });
+}
+
+function formatBytes(bytes: number): string {
+  if (!bytes) return '—';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function buildStaffMap(staff: UserResponse[]): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const s of staff) {
+    const name = s.first_name && s.last_name
+      ? `${s.first_name} ${s.last_name}`
+      : s.username;
+    map.set(s.id, name);
+  }
+  return map;
 }
 
 function SectionBox({ title, icon: Icon, children, defaultOpen = true }: {
@@ -43,12 +71,370 @@ function SectionBox({ title, icon: Icon, children, defaultOpen = true }: {
           <Icon size={16} className="text-brand-500" />
           {title}
         </span>
-        {open ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+        {open
+          ? <ChevronUp size={16} className="text-gray-400" />
+          : <ChevronDown size={16} className="text-gray-400" />}
       </button>
       {open && <div className="mt-4">{children}</div>}
     </div>
   );
 }
+
+// ─── Document preview helpers ─────────────────────────────────────────────────
+
+function DocIcon({ mime, size = 20 }: { mime: string; size?: number }) {
+  if (mime?.startsWith('image/')) return <Image size={size} className="text-blue-500" />;
+  if (mime === 'application/pdf') return <FileText size={size} className="text-red-500" />;
+  return <File size={size} className="text-gray-400" />;
+}
+
+function canPreview(mime: string): boolean {
+  return mime?.startsWith('image/') || mime === 'application/pdf';
+}
+
+/**
+ * Fetches the document via the authenticated apiClient and returns a
+ * browser blob URL safe for use in <img> / <iframe> src attributes.
+ *
+ * Why: <img src="/api/..."> can't send an Authorization header, so the
+ * endpoint would 401. Fetching with axios (which has the token interceptor)
+ * then calling URL.createObjectURL() sidesteps that entirely.
+ */
+function useDocumentBlob(
+  verificationId: string,
+  documentId: string,
+  enabled: boolean,
+) {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!enabled || !documentId) return;
+
+    let objectUrl: string | null = null;
+    setLoading(true);
+    setError(false);
+
+    apiClient
+      .get(
+        `/api/v1/transcripts/${verificationId}/documents/${documentId}/preview`,
+        { responseType: 'blob' },
+      )
+      .then((res) => {
+        // Explicitly preserve the content-type so the browser renders the
+        // blob correctly (especially important for PDFs — without the right
+        // MIME type the browser won't invoke its PDF viewer).
+        const contentType: string =
+          (res.headers['content-type'] as string | undefined)?.split(';')[0].trim() ||
+          'application/octet-stream';
+        const blob = new Blob([res.data as BlobPart], { type: contentType });
+        objectUrl = URL.createObjectURL(blob);
+        setBlobUrl(objectUrl);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError(true);
+        setLoading(false);
+      });
+
+    return () => {
+      // Revoke the object URL when the component using it unmounts
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      setBlobUrl(null);
+    };
+  }, [verificationId, documentId, enabled]);
+
+  return { blobUrl, loading, error };
+}
+
+// ─── Preview modal ────────────────────────────────────────────────────────────
+
+function PreviewModal({
+  doc,
+  verificationId,
+  onClose,
+}: {
+  doc: Record<string, unknown>;
+  verificationId: string;
+  onClose: () => void;
+}) {
+  const filename   = (doc.original_filename as string) || 'Document';
+  const mime       = (doc.mime_type as string) || '';
+  const documentId = (doc.document_id as string) || '';
+
+  const isImage = mime.startsWith('image/');
+  const isPdf   = mime === 'application/pdf';
+
+  const [zoom, setZoom] = useState(100);
+  const [rotation, setRotation] = useState(0);
+
+  // Fetch via authenticated axios → blob URL (bypasses the auth header problem)
+  const { blobUrl, loading, error } = useDocumentBlob(verificationId, documentId, true);
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  // Trigger browser download from the blob URL
+  const handleDownload = () => {
+    if (!blobUrl) return;
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    a.click();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex flex-col bg-black/85 backdrop-blur-sm"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      {/* Toolbar */}
+      <div className="flex items-center justify-between px-5 py-3 bg-gray-900 border-b border-white/10 shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <DocIcon mime={mime} size={16} />
+          <span className="text-sm font-medium text-white truncate max-w-xs" title={filename}>
+            {filename}
+          </span>
+          <span className="text-xs text-gray-500 shrink-0 hidden sm:block">{mime}</span>
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          {isImage && blobUrl && (
+            <>
+              <button
+                onClick={() => setZoom((z) => Math.max(25, z - 25))}
+                className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                title="Zoom out"
+              >
+                <ZoomOut size={15} />
+              </button>
+              <span className="text-xs text-gray-500 w-10 text-center select-none">{zoom}%</span>
+              <button
+                onClick={() => setZoom((z) => Math.min(300, z + 25))}
+                className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                title="Zoom in"
+              >
+                <ZoomIn size={15} />
+              </button>
+              <button
+                onClick={() => setRotation((r) => (r + 90) % 360)}
+                className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                title="Rotate 90°"
+              >
+                <RotateCw size={15} />
+              </button>
+              <div className="w-px h-5 bg-white/20 mx-1" />
+            </>
+          )}
+
+          <button
+            onClick={handleDownload}
+            disabled={!blobUrl}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-300 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors disabled:opacity-40"
+          >
+            <Download size={13} />
+            Download
+          </button>
+
+          <button
+            onClick={onClose}
+            className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors ml-1"
+          >
+            <X size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-auto flex items-center justify-center p-4">
+        {loading && (
+          <div className="flex flex-col items-center gap-3 text-gray-400">
+            <Spinner size={32} />
+            <p className="text-sm">Loading document…</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="text-center text-gray-400 space-y-2">
+            <File size={48} className="mx-auto opacity-30" />
+            <p className="text-sm">Failed to load document.</p>
+            <p className="text-xs text-gray-500">The file may no longer exist on the server.</p>
+          </div>
+        )}
+
+        {blobUrl && isImage && (
+          <img
+            src={blobUrl}
+            alt={filename}
+            style={{
+              transform: `scale(${zoom / 100}) rotate(${rotation}deg)`,
+              transformOrigin: 'center',
+              transition: 'transform 0.2s ease',
+              maxWidth: zoom <= 100 ? '100%' : 'none',
+              maxHeight: zoom <= 100 ? 'calc(100vh - 120px)' : 'none',
+            }}
+            className="rounded shadow-2xl object-contain"
+          />
+        )}
+
+        {blobUrl && isPdf && (
+          // <object> handles PDF blob URLs more reliably than <iframe> across browsers.
+          // <iframe> with a blob URL often shows a blank page because the browser's
+          // built-in PDF viewer doesn't receive the correct MIME type via iframe.
+          <object
+            data={blobUrl}
+            type="application/pdf"
+            className="w-full max-w-5xl rounded shadow-2xl bg-white"
+            style={{ height: 'calc(100vh - 120px)' }}
+          >
+            {/* Fallback for browsers that block inline PDF (e.g. Firefox strict mode) */}
+            <div className="flex flex-col items-center justify-center h-full gap-4 text-gray-400 p-8">
+              <FileText size={48} className="opacity-30" />
+              <p className="text-sm text-center">
+                Your browser cannot display the PDF inline.
+              </p>
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors"
+              >
+                <Download size={15} /> Download PDF
+              </button>
+            </div>
+          </object>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Document card ────────────────────────────────────────────────────────────
+
+function DocumentCard({
+  doc,
+  verificationId,
+}: {
+  doc: Record<string, unknown>;
+  verificationId: string;
+}) {
+  const filename  = (doc.original_filename as string) || 'Unknown file';
+  const mime      = (doc.mime_type as string) || '';
+  const size      = doc.file_size_bytes as number;
+  const docStatus = (doc.status as string) || '';
+  const uploadedAt = doc.uploaded_at as string;
+  const checksum  = (doc.checksum_sha256 as string) || '';
+  const documentId = doc.document_id as string;
+
+  const [showPreview, setShowPreview] = useState(false);
+
+  const previewable = canPreview(mime);
+  const isImage = mime.startsWith('image/');
+
+  // Pre-fetch thumbnail for images via authenticated axios → blob URL
+  const { blobUrl: thumbBlobUrl } = useDocumentBlob(verificationId, documentId, isImage);
+
+  const statusColor =
+    docStatus === 'processed'  ? 'bg-emerald-100 text-emerald-700' :
+    docStatus === 'processing' ? 'bg-blue-100 text-blue-700'       :
+    docStatus === 'failed'     ? 'bg-red-100 text-red-700'         :
+                                  'bg-gray-100 text-gray-600';
+
+  return (
+    <>
+      <div className="flex items-start gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50 hover:bg-white transition-colors group">
+
+        {/* Thumbnail / icon */}
+        <div
+          className={`w-14 h-14 rounded-lg border border-gray-200 bg-white flex items-center justify-center shrink-0 overflow-hidden shadow-sm ${previewable ? 'cursor-pointer' : ''}`}
+          onClick={() => previewable && setShowPreview(true)}
+        >
+          {thumbBlobUrl ? (
+            <img
+              src={thumbBlobUrl}
+              alt={filename}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <DocIcon mime={mime} size={22} />
+          )}
+        </div>
+
+        {/* Details */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold text-gray-800 truncate" title={filename}>
+              {filename}
+            </span>
+            {docStatus && (
+              <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full capitalize ${statusColor}`}>
+                {docStatus}
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-gray-400">
+            {mime && <span>{mime}</span>}
+            {size > 0 && <span>{formatBytes(size)}</span>}
+            {uploadedAt && <span>Uploaded {formatDateTime(uploadedAt)}</span>}
+          </div>
+
+          {checksum && (
+            <p className="mt-1 text-[10px] font-mono text-gray-300 truncate" title={checksum}>
+              SHA-256: {checksum}
+            </p>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          {previewable ? (
+            <button
+              onClick={() => setShowPreview(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+            >
+              <Eye size={13} />
+              Preview
+            </button>
+          ) : (
+            <span className="text-xs text-gray-400 italic">No preview</span>
+          )}
+          <button
+            onClick={() => {
+              if (!thumbBlobUrl && !previewable) return;
+              // For images we already have the blob; for PDFs open preview modal
+              if (thumbBlobUrl) {
+                const a = document.createElement('a');
+                a.href = thumbBlobUrl;
+                a.download = filename;
+                a.click();
+              } else {
+                setShowPreview(true);
+              }
+            }}
+            className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            title="Download"
+          >
+            <Download size={14} />
+          </button>
+        </div>
+      </div>
+
+      {showPreview && (
+        <PreviewModal
+          doc={doc}
+          verificationId={verificationId}
+          onClose={() => setShowPreview(false)}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export function TranscriptDetail() {
   const { id } = useParams<{ id: string }>();
@@ -74,6 +460,22 @@ export function TranscriptDetail() {
     queryFn: () => transcriptsApi.listReviews(id!),
     enabled: !!id,
   });
+
+  // Fetch staff to resolve IDs → names
+  const { data: staffList = [] } = useQuery({
+    queryKey: ['staff-list'],
+    queryFn: () => authApi.listStaff(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const staffMap = useMemo(() => buildStaffMap(staffList), [staffList]);
+
+  // Derive display values
+  const primaryDoc = transcript?.documents?.[0] as Record<string, unknown> | undefined;
+  const transcriptFilename = (primaryDoc?.original_filename as string) || '—';
+  const assignedStaffName = transcript?.assigned_staff_id
+    ? (staffMap.get(transcript.assigned_staff_id) ?? transcript.assigned_staff_id)
+    : null;
 
   const deleteMutation = useMutation({
     mutationFn: () => transcriptsApi.delete(id!),
@@ -143,8 +545,8 @@ export function TranscriptDetail() {
     );
   }
 
-  const flags: Array<{ flag_id: string; type: string; description: string; severity?: string }> =
-    (transcript.summary as Record<string, unknown>)?.flags as never ?? [];
+  const flags: Array<Record<string, unknown>> =
+    ((transcript.summary as Record<string, unknown>)?.flags as Record<string, unknown>[]) ?? [];
 
   return (
     <div className="p-8 max-w-4xl">
@@ -178,26 +580,48 @@ export function TranscriptDetail() {
       {/* Core info */}
       <SectionBox title="Applicant Information" icon={ClipboardList}>
         <div className="grid grid-cols-2 gap-4 text-sm">
+
+          {/* Transcript filename instead of raw applicant_id */}
           <div>
-            <p className="text-gray-400 text-xs mb-0.5">Applicant ID</p>
-            <p className="font-medium text-gray-800">{transcript.applicant_id}</p>
+            <p className="text-gray-400 text-xs mb-0.5">Transcript File</p>
+            <div className="flex items-center gap-1.5">
+              <FileText size={13} className="text-gray-400 shrink-0" />
+              <p className="font-medium text-gray-800 truncate" title={transcriptFilename}>
+                {transcriptFilename}
+              </p>
+            </div>
           </div>
+
           <div>
             <p className="text-gray-400 text-xs mb-0.5">Applicant Type</p>
-            <p className="font-medium text-gray-800 capitalize">{transcript.applicant_type.replace('_', ' ')}</p>
+            <p className="font-medium text-gray-800 capitalize">
+              {transcript.applicant_type.replace('_', ' ')}
+            </p>
           </div>
+
+          {/* Assigned staff name instead of UUID */}
           <div>
-            <p className="text-gray-400 text-xs mb-0.5">Assigned Staff</p>
-            <p className="font-medium text-gray-800">{transcript.assigned_staff_id ?? '—'}</p>
+            <p className="text-gray-400 text-xs mb-0.5">Assigned Reviewer</p>
+            {assignedStaffName ? (
+              <div className="flex items-center gap-1.5">
+                <User size={13} className="text-gray-400 shrink-0" />
+                <p className="font-medium text-gray-800">{assignedStaffName}</p>
+              </div>
+            ) : (
+              <p className="text-gray-400 italic text-sm">Unassigned</p>
+            )}
           </div>
+
           <div>
             <p className="text-gray-400 text-xs mb-0.5">Created</p>
             <p className="font-medium text-gray-800">{formatDateTime(transcript.created_at)}</p>
           </div>
+
           <div>
             <p className="text-gray-400 text-xs mb-0.5">Last Updated</p>
             <p className="font-medium text-gray-800">{formatDateTime(transcript.updated_at)}</p>
           </div>
+
           {transcript.completed_at && (
             <div>
               <p className="text-gray-400 text-xs mb-0.5">Completed</p>
@@ -235,31 +659,111 @@ export function TranscriptDetail() {
       <SectionBox title="AI Verification Summary" icon={ClipboardList} defaultOpen={true}>
         {!transcript.summary ? (
           <p className="text-sm text-gray-400 italic">No AI summary available yet.</p>
-        ) : (
-          <pre className="text-xs bg-gray-50 rounded-lg p-4 overflow-auto text-gray-700 border border-gray-100">
-            {JSON.stringify(transcript.summary, null, 2)}
-          </pre>
-        )}
+        ) : (() => {
+          const s = transcript.summary as Record<string, unknown>;
+          const riskLevel = s.risk_level as string;
+          const fraudScore = typeof s.fraud_score === 'number' ? Math.round((s.fraud_score as number) * 100) : null;
+          const recommendation = s.ai_recommendation as string;
+          const extracted = s.extracted_data as Record<string, unknown> | undefined;
+
+          const riskColor =
+            riskLevel === 'LOW'    ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+            riskLevel === 'MEDIUM' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+            riskLevel === 'HIGH'   ? 'bg-red-50 text-red-700 border-red-200' :
+                                     'bg-gray-50 text-gray-600 border-gray-200';
+
+          return (
+            <div className="space-y-4">
+              {/* Risk + score */}
+              {(riskLevel || fraudScore !== null) && (
+                <div className="flex items-center gap-3 flex-wrap">
+                  {riskLevel && (
+                    <span className={`text-xs font-bold uppercase px-3 py-1 rounded-full border ${riskColor}`}>
+                      {riskLevel} Risk
+                    </span>
+                  )}
+                  {fraudScore !== null && (
+                    <span className="text-xs text-gray-500">
+                      Fraud score: <span className="font-semibold text-gray-700">{fraudScore}%</span>
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* AI recommendation */}
+              {recommendation && (
+                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-blue-700 uppercase mb-1">AI Recommendation</p>
+                  <p className="text-sm text-blue-800">{recommendation}</p>
+                </div>
+              )}
+
+              {/* Extracted data */}
+              {extracted && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Extracted Data</p>
+                  <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                    {[
+                      { label: 'Institution', value: extracted.institution_name },
+                      { label: 'Program', value: extracted.program_name },
+                      { label: 'Degree', value: extracted.degree_awarded },
+                      { label: 'Graduation Date', value: extracted.graduation_date || '—' },
+                      { label: 'Graduation Confirmed', value: extracted.graduation_confirmed ? 'Yes' : 'No' },
+                      { label: 'Total Credits', value: extracted.total_credits ? `${extracted.total_credits} hrs` : '—' },
+                      { label: 'Nursing Credits', value: extracted.nursing_credits ? `${extracted.nursing_credits} hrs` : '—' },
+                      { label: 'Accreditation', value: extracted.accreditation_type },
+                    ].map(({ label, value }) => value ? (
+                      <div key={label}>
+                        <dt className="text-xs text-gray-400">{label}</dt>
+                        <dd className="font-medium text-gray-800">{String(value)}</dd>
+                      </div>
+                    ) : null)}
+                  </dl>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </SectionBox>
 
       {/* Flags & Reviews */}
       {flags.length > 0 && (
-        <SectionBox title="AI Flags" icon={XCircle}>
+        <SectionBox title={`AI Flags (${flags.length})`} icon={XCircle}>
           <div className="space-y-3">
-            {flags.map((flag) => {
-              const reviewed = reviews?.find((r) => r.flag_id === flag.flag_id);
+            {flags.map((flag, idx) => {
+              const flagId = flag.flag_id as string;
+              const sev = flag.severity as string;
+              const reviewed = reviews?.find((r) => r.flag_id === flagId);
+
+              const borderBg =
+                sev === 'critical' ? 'border-red-200 bg-red-50' :
+                sev === 'warning'  ? 'border-amber-200 bg-amber-50' :
+                                     'border-blue-200 bg-blue-50';
+              const badgeColor =
+                sev === 'critical' ? 'bg-red-100 text-red-700' :
+                sev === 'warning'  ? 'bg-amber-100 text-amber-700' :
+                                     'bg-blue-100 text-blue-700';
+
               return (
-                <div key={flag.flag_id} className="border border-red-100 rounded-lg p-4 bg-red-50">
+                <div key={flagId ?? idx} className={`border rounded-lg p-4 ${borderBg}`}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-red-800">{flag.type}</p>
-                      <p className="text-sm text-red-700 mt-0.5">{flag.description}</p>
-                      {flag.severity && (
-                        <p className="text-xs text-red-500 mt-1">Severity: {flag.severity}</p>
-                      )}
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className={`text-xs font-bold uppercase px-1.5 py-0.5 rounded ${badgeColor}`}>
+                          {sev}
+                        </span>
+                        <span className="text-xs text-gray-500 font-mono">{flag.rule_code as string}</span>
+                        <span className="text-xs text-gray-400 capitalize">
+                          {(flag.category as string)?.replace('_', ' ')}
+                        </span>
+                      </div>
+                      <p className="text-sm font-semibold text-gray-800">{flag.rule_description as string}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 italic">Evidence: {flag.evidence as string}</p>
+                      <p className="text-xs text-gray-600 mt-1">{flag.explanation as string}</p>
                     </div>
+
                     {reviewed ? (
-                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-full shrink-0 ${
                         reviewed.action === 'confirm'
                           ? 'bg-red-100 text-red-700'
                           : 'bg-purple-100 text-purple-700'
@@ -269,19 +773,13 @@ export function TranscriptDetail() {
                     ) : (
                       <div className="flex gap-2 flex-shrink-0">
                         <button
-                          onClick={() => {
-                            setReviewFlagId(flag.flag_id);
-                            setReviewAction('confirm');
-                          }}
+                          onClick={() => { setReviewFlagId(flagId); setReviewAction('confirm'); }}
                           className="text-xs bg-red-600 text-white px-2.5 py-1 rounded-lg hover:bg-red-700 flex items-center gap-1"
                         >
                           <CheckCircle size={12} /> Confirm
                         </button>
                         <button
-                          onClick={() => {
-                            setReviewFlagId(flag.flag_id);
-                            setReviewAction('override');
-                          }}
+                          onClick={() => { setReviewFlagId(flagId); setReviewAction('override'); }}
                           className="text-xs bg-white border border-red-300 text-red-700 px-2.5 py-1 rounded-lg hover:bg-red-50 flex items-center gap-1"
                         >
                           <XCircle size={12} /> Override
@@ -344,12 +842,17 @@ export function TranscriptDetail() {
           <div className="space-y-3 mb-4">
             {transcript.annotations.map((a, i) => {
               const ann = a as Record<string, unknown>;
+              const authorId = ann.staff_user_id as string;
+              const authorName = staffMap.get(authorId) ?? authorId;
               return (
                 <div key={i} className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm">
                   <p className="text-gray-800">{String(ann.note ?? '')}</p>
-                  <div className="flex gap-3 text-xs text-gray-400 mt-1">
-                    <span>{String(ann.staff_user_id ?? '')}</span>
-                    {ann.created_at != null && <span>{formatDateTime(String(ann.created_at))}</span>}
+                  <div className="flex items-center gap-2 text-xs text-gray-400 mt-1.5">
+                    <User size={11} />
+                    <span className="font-medium text-gray-500">{authorName}</span>
+                    {ann.created_at != null && (
+                      <span>· {formatDateTime(String(ann.created_at))}</span>
+                    )}
                   </div>
                 </div>
               );
@@ -381,36 +884,46 @@ export function TranscriptDetail() {
       {reviews && reviews.length > 0 && (
         <SectionBox title="Audit Trail — Flag Reviews" icon={ClipboardList} defaultOpen={false}>
           <div className="space-y-2">
-            {reviews.map((r) => (
-              <div key={r.review_id} className="text-sm flex items-start gap-3 p-3 rounded-lg bg-gray-50">
-                <span className={`mt-0.5 px-2 py-0.5 rounded-full text-xs font-semibold ${
-                  r.action === 'confirm'
-                    ? 'bg-red-100 text-red-700'
-                    : 'bg-purple-100 text-purple-700'
-                }`}>
-                  {r.action}
-                </span>
-                <div className="flex-1">
-                  <p className="text-gray-700">
-                    Flag <span className="font-mono text-xs">{r.flag_id}</span>
-                    {r.justification ? ` — ${r.justification}` : ''}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {r.staff_user_id} · {formatDateTime(r.created_at)}
-                  </p>
+            {reviews.map((r) => {
+              const reviewerName = staffMap.get(r.staff_user_id) ?? r.staff_user_id;
+              return (
+                <div key={r.review_id} className="text-sm flex items-start gap-3 p-3 rounded-lg bg-gray-50">
+                  <span className={`mt-0.5 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    r.action === 'confirm'
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-purple-100 text-purple-700'
+                  }`}>
+                    {r.action}
+                  </span>
+                  <div className="flex-1">
+                    <p className="text-gray-700">
+                      Flag <span className="font-mono text-xs">{r.flag_id.slice(0, 8)}…</span>
+                      {r.justification ? ` — ${r.justification}` : ''}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                      <User size={10} />
+                      {reviewerName} · {formatDateTime(r.created_at)}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </SectionBox>
       )}
 
-      {/* Documents */}
+      {/* Documents — previewable cards */}
       {transcript.documents.length > 0 && (
-        <SectionBox title="Documents" icon={ClipboardList} defaultOpen={false}>
-          <pre className="text-xs bg-gray-50 rounded-lg p-4 overflow-auto text-gray-700 border border-gray-100">
-            {JSON.stringify(transcript.documents, null, 2)}
-          </pre>
+        <SectionBox title={`Documents (${transcript.documents.length})`} icon={FileText} defaultOpen={true}>
+          <div className="space-y-3">
+            {transcript.documents.map((doc, idx) => (
+              <DocumentCard
+                key={idx}
+                doc={doc as Record<string, unknown>}
+                verificationId={transcript.verification_id}
+              />
+            ))}
+          </div>
         </SectionBox>
       )}
 
@@ -418,7 +931,7 @@ export function TranscriptDetail() {
       {showDeleteModal && (
         <ConfirmModal
           title="Delete Verification Record"
-          message={`Are you sure you want to permanently delete verification record for applicant "${transcript.applicant_id}"? This cannot be undone.`}
+          message={`Permanently delete verification for "${transcriptFilename}"? This cannot be undone.`}
           confirmLabel="Delete"
           danger
           onConfirm={() => deleteMutation.mutate()}

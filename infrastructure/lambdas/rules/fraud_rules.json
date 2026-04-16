@@ -1,0 +1,180 @@
+{
+  "version": "1.0",
+  "description": "Mississippi State Board of Nursing (MSBN) transcript fraud detection rules",
+  "rules": [
+
+    {
+      "code": "ACCREDITATION_001",
+      "category": "accreditation",
+      "severity": "critical",
+      "description": "Nursing program must be accredited by ACEN, CCNE, or NLNAC",
+      "check": "Verify the transcript or attached documentation references one of: ACEN, CCNE, NLNAC, or equivalent accrediting body. Absence of accreditation reference is a critical flag."
+    },
+    {
+      "code": "ACCREDITATION_002",
+      "category": "accreditation",
+      "severity": "warning",
+      "description": "Accrediting body name must be spelled correctly and in full",
+      "check": "Look for misspellings such as 'ACEAN', 'CCNEE', or abbreviated forms not matching official names."
+    },
+
+    {
+      "code": "GRADUATION_001",
+      "category": "graduation",
+      "severity": "critical",
+      "description": "Graduation or degree conferral must be explicitly stated",
+      "check": "Transcript must contain a graduation date or degree conferred statement. A transcript without a conferred degree is incomplete for licensure purposes."
+    },
+    {
+      "code": "GRADUATION_002",
+      "category": "graduation",
+      "severity": "critical",
+      "description": "Graduation date must be chronologically valid",
+      "check": "Graduation date must be after all listed coursework completion dates. Graduation occurring before the last semester's courses is a critical fraud indicator."
+    },
+    {
+      "code": "GRADUATION_003",
+      "category": "graduation",
+      "severity": "warning",
+      "description": "Degree awarded must match nursing program (BSN, ADN, MSN, etc.)",
+      "check": "Verify degree type is a recognized nursing designation. Non-nursing degrees submitted as nursing transcripts must be flagged."
+    },
+
+    {
+      "code": "PROGRAM_001",
+      "category": "program_completion",
+      "severity": "critical",
+      "description": "Minimum nursing credit hours must be met",
+      "check": "ADN programs require minimum 60 credit hours. BSN programs require minimum 120 credit hours. Flag if total credits appear below program minimums."
+    },
+    {
+      "code": "PROGRAM_002",
+      "category": "program_completion",
+      "severity": "warning",
+      "description": "Clinical nursing courses must be present in curriculum",
+      "check": "Look for clinical practicum, clinical rotation, or nursing lab courses. A nursing degree without any clinical coursework is suspicious."
+    },
+    {
+      "code": "PROGRAM_003",
+      "category": "program_completion",
+      "severity": "warning",
+      "description": "Core nursing courses must be present (Fundamentals, Med-Surg, Pharmacology)",
+      "check": "Verify presence of foundational nursing courses: Nursing Fundamentals, Medical-Surgical Nursing, Pharmacology, Maternal/Child Health, Mental Health Nursing."
+    },
+    {
+      "code": "PROGRAM_004",
+      "category": "program_completion",
+      "severity": "info",
+      "description": "Credit hours per course must be within normal range",
+      "check": "Individual courses should be 1–6 credit hours. Courses listed with 0, negative, or more than 8 credit hours are anomalous."
+    },
+
+    {
+      "code": "INTEGRITY_001",
+      "category": "document_integrity",
+      "severity": "critical",
+      "description": "Official institutional seal or stamp must be present",
+      "check": "Official transcripts must bear the institution's official seal, emblem, or registrar stamp. Absence of any official marking is a critical integrity flag."
+    },
+    {
+      "code": "INTEGRITY_002",
+      "category": "document_integrity",
+      "severity": "critical",
+      "description": "Registrar signature or certification statement must be present",
+      "check": "Look for a registrar's signature, official certification statement, or digital authentication mark. Unofficial transcripts lack these."
+    },
+    {
+      "code": "INTEGRITY_003",
+      "category": "document_integrity",
+      "severity": "warning",
+      "description": "Institution name must be consistent throughout the document",
+      "check": "The institution name in the header must match the institution name in the degree conferral section. Inconsistency suggests editing or tampering."
+    },
+    {
+      "code": "INTEGRITY_004",
+      "category": "document_integrity",
+      "severity": "warning",
+      "description": "Student name must be consistent throughout the document",
+      "check": "The applicant's name must appear consistently. Different name formats or spellings in different sections suggest the document may have been altered."
+    },
+    {
+      "code": "INTEGRITY_005",
+      "category": "document_integrity",
+      "severity": "info",
+      "description": "Font and formatting must be consistent",
+      "check": "Look for inconsistent font sizes, styles, or spacing that could indicate text was inserted or modified. Highlighted, underlined, or bolded individual grades are suspicious."
+    },
+    {
+      "code": "INTEGRITY_006",
+      "category": "document_integrity",
+      "severity": "warning",
+      "description": "GPA must be mathematically consistent with listed grades",
+      "check": "If both individual grades and a cumulative GPA are listed, verify the GPA is plausible given the grade distribution. A 4.0 GPA with mostly C grades is fraudulent."
+    },
+    {
+      "code": "INTEGRITY_007",
+      "category": "document_integrity",
+      "severity": "warning",
+      "description": "Total credit hours must be consistent with course listing",
+      "check": "Sum the credit hours for all listed courses and verify they approximately match the total credits shown on the degree audit or transcript summary."
+    },
+
+    {
+      "code": "FRAUD_001",
+      "category": "fraud_indicator",
+      "severity": "critical",
+      "description": "GPA must be between 0.0 and 4.0 on standard scale",
+      "check": "Any GPA value above 4.0 on a standard scale, or negative GPA, is impossible and indicates document manipulation."
+    },
+    {
+      "code": "FRAUD_002",
+      "category": "fraud_indicator",
+      "severity": "critical",
+      "description": "Semester sequence must be chronologically logical",
+      "check": "Semesters must progress in order (Fall → Spring → Summer or sequential years). Out-of-order semesters (e.g., Fall 2024 appearing after Spring 2025) indicate tampering."
+    },
+    {
+      "code": "FRAUD_003",
+      "category": "fraud_indicator",
+      "severity": "critical",
+      "description": "Institution must be a real, verifiable educational institution",
+      "check": "The institution name should match a known accredited college or university. Fictional, misspelled, or unrecognizable institution names are fraud indicators."
+    },
+    {
+      "code": "FRAUD_004",
+      "category": "fraud_indicator",
+      "severity": "warning",
+      "description": "Course names must correspond to real academic disciplines",
+      "check": "Course titles should be recognizable academic subjects. Nonsensical, gibberish, or impossibly broad course names (e.g., 'Advanced Everything 101') are suspicious."
+    },
+    {
+      "code": "FRAUD_005",
+      "category": "fraud_indicator",
+      "severity": "warning",
+      "description": "Student ID format must be consistent",
+      "check": "If a student ID appears multiple times, the format and value must be identical each time. Inconsistency suggests the document was edited."
+    },
+    {
+      "code": "FRAUD_006",
+      "category": "fraud_indicator",
+      "severity": "info",
+      "description": "Grade distribution must be statistically plausible",
+      "check": "An applicant with perfect grades (all A's) in every single course across 4 years warrants a note, though not a critical flag by itself."
+    },
+
+    {
+      "code": "FORMAT_001",
+      "category": "formatting",
+      "severity": "info",
+      "description": "Transcript must be legible and complete",
+      "check": "Document should be clearly readable. Heavily pixelated, partially cut-off, or intentionally obscured sections of a transcript are formatting red flags."
+    },
+    {
+      "code": "FORMAT_002",
+      "category": "formatting",
+      "severity": "info",
+      "description": "Page numbers or continuation markers should be present on multi-page transcripts",
+      "check": "If the transcript appears to be multiple pages, look for page numbers or continuation markers. Missing pages could hide failing grades or incomplete terms."
+    }
+  ]
+}

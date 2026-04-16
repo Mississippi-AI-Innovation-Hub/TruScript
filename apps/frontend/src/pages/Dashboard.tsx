@@ -1,11 +1,22 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { FileText, CheckCircle, AlertTriangle, Clock, ArrowRight, TrendingUp } from 'lucide-react';
+import { FileText, CheckCircle, AlertTriangle, Clock, ArrowRight, TrendingUp, File, Image } from 'lucide-react';
 import { transcriptsApi } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { Spinner } from '../components/Spinner';
-import type { VerificationStatus } from '../types';
+import type { TranscriptResponse, VerificationStatus } from '../types';
+
+function getFilename(t: TranscriptResponse): string {
+  const doc = t.documents?.[0] as Record<string, unknown> | undefined;
+  return (doc?.original_filename as string) || t.applicant_id;
+}
+
+function FileIcon({ mime }: { mime: string }) {
+  if (mime?.startsWith('image/')) return <Image size={14} className="text-blue-400 shrink-0" />;
+  if (mime === 'application/pdf') return <FileText size={14} className="text-red-400 shrink-0" />;
+  return <File size={14} className="text-gray-400 shrink-0" />;
+}
 
 const statusOrder: VerificationStatus[] = ['pending', 'in_progress', 'flagged', 'cleared', 'overridden'];
 
@@ -140,29 +151,36 @@ export function Dashboard() {
                 <p className="text-sm text-gray-400 text-center py-6">No verifications yet.</p>
               ) : (
                 <div className="space-y-3">
-                  {recent.map((t) => (
-                    <Link
-                      key={t.verification_id}
-                      to={`/transcripts/${t.verification_id}`}
-                      className="flex items-center justify-between p-3 rounded-lg hover:bg-brand-50 transition-colors group"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">
-                          {t.applicant_id}
-                        </p>
-                        <p className="text-xs text-gray-400 capitalize">
-                          {t.applicant_type.replace('_', ' ')} applicant
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                        <StatusBadge status={t.status} />
-                        <ArrowRight
-                          size={14}
-                          className="text-gray-300 group-hover:text-brand-400 transition-colors"
-                        />
-                      </div>
-                    </Link>
-                  ))}
+                  {recent.map((t) => {
+                    const filename = getFilename(t);
+                    const mime = ((t.documents?.[0] as Record<string, unknown> | undefined)?.mime_type as string) || '';
+                    return (
+                      <Link
+                        key={t.verification_id}
+                        to={`/transcripts/${t.verification_id}`}
+                        className="flex items-center justify-between p-3 rounded-lg hover:bg-brand-50 transition-colors group"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileIcon mime={mime} />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-800 truncate">
+                              {filename}
+                            </p>
+                            <p className="text-xs text-gray-400 capitalize">
+                              {t.applicant_type.replace('_', ' ')} applicant
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                          <StatusBadge status={t.status} />
+                          <ArrowRight
+                            size={14}
+                            className="text-gray-300 group-hover:text-brand-400 transition-colors"
+                          />
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </div>
