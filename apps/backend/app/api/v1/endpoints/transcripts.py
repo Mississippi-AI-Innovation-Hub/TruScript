@@ -14,8 +14,11 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any
 
+import mimetypes
+import os
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Security, status
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -211,3 +214,74 @@ async def delete_transcript(
     except TranscriptNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     return {"deleted": True, "verification_id": verification_id}
+
+
+@router.get(
+    "/{verification_id}/documents/{document_id}/preview",
+    summary="Stream a transcript document file for preview",
+    description=(
+        "Returns the raw file bytes so the frontend can render images and PDFs "
+        "inline.  The file is read from the server-local storage path recorded "
+        "at upload time.  For DOCX files (not browser-previewable) a 415 is "
+        "returned so the client can show a fallback message."
+    ),
+)
+async def preview_document(
+    verification_id: str,
+    document_id: str,
+    current_user: CurrentUser,
+    repo: SQLAlchemyTranscriptRepository = Depends(get_repo),
+) -> FileResponse:
+    # Load transcript
+    try:
+        transcript = await GetTranscriptUseCase(repo).execute(verification_id)
+    except TranscriptNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+
+    # Find the document in the JSONB array
+    doc: dict | None = None
+    for d in transcript.documents:
+        raw = d if isinstance(d, dict) else {}
+        if raw.get("document_id") == document_id:
+            doc = raw
+            break
+
+    if doc is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document {document_id} not found on verification {verification_id}.",
+        )
+
+    storage_path: str = doc.get("storage_path", "")
+    mime_type: str = doc.get("mime_type", "") or ""
+    filename: str = doc.get("original_filename", "document")
+
+    # Reject file types the browser cannot render inline
+    non_previewable = {
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+    }
+    if mime_type in non_previewable:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="DOCX files cannot be previewed in the browser. Please download the file.",
+        )
+
+    if not storage_path or not os.path.isfile(storage_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found on server storage. It may have been cleaned up.",
+        )
+
+    # Guess mime if not stored
+    if not mime_type:
+        guessed, _ = mimetypes.guess_type(filename)
+        mime_type = guessed or "application/octet-stream"
+
+    return FileResponse(
+        path=storage_path,
+        media_type=mime_type,
+        filename=filename,
+        # inline disposition so browsers render rather than download
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )

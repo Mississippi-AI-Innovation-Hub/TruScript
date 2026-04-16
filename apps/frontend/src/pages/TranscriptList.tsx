@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { PlusCircle, ChevronLeft, ChevronRight, ArrowRight, Search } from 'lucide-react';
-import { transcriptsApi } from '../api';
+import { PlusCircle, ChevronLeft, ChevronRight, ArrowRight, Search, FileText, User } from 'lucide-react';
+import { transcriptsApi, authApi } from '../api';
+import type { TranscriptResponse, UserResponse } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
 import { PageHeader } from '../components/PageHeader';
 import { Spinner } from '../components/Spinner';
@@ -17,6 +18,26 @@ function formatDate(iso: string) {
   });
 }
 
+/** Pull the original filename from the documents array. */
+function getFilename(t: TranscriptResponse): string {
+  const doc = t.documents?.[0] as Record<string, unknown> | undefined;
+  const name = doc?.original_filename as string | undefined;
+  return name || '—';
+}
+
+/** Build id → display name map from staff list. */
+function buildStaffMap(staff: UserResponse[]): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const s of staff) {
+    const name =
+      s.first_name && s.last_name
+        ? `${s.first_name} ${s.last_name}`
+        : s.username;
+    map.set(s.id, name);
+  }
+  return map;
+}
+
 export function TranscriptList() {
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
@@ -27,15 +48,34 @@ export function TranscriptList() {
     placeholderData: (prev) => prev,
   });
 
+  // Fetch staff for name resolution — stale 5 min, won't block the page
+  const { data: staffList = [] } = useQuery({
+    queryKey: ['staff-list'],
+    queryFn: () => authApi.listStaff(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const staffMap = useMemo(() => buildStaffMap(staffList), [staffList]);
+
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
 
-  const filtered = search
-    ? (data?.items ?? []).filter(
-        (t) =>
-          t.applicant_id.toLowerCase().includes(search.toLowerCase()) ||
-          t.verification_id.toLowerCase().includes(search.toLowerCase())
-      )
-    : (data?.items ?? []);
+  const filtered = useMemo(() => {
+    const items = data?.items ?? [];
+    if (!search) return items;
+    const q = search.toLowerCase();
+    return items.filter((t) => {
+      const filename = getFilename(t).toLowerCase();
+      const staffName = t.assigned_staff_id
+        ? (staffMap.get(t.assigned_staff_id) ?? '').toLowerCase()
+        : '';
+      return (
+        filename.includes(q) ||
+        t.verification_id.toLowerCase().includes(q) ||
+        t.status.toLowerCase().includes(q) ||
+        staffName.includes(q)
+      );
+    });
+  }, [data, search, staffMap]);
 
   return (
     <div className="p-8">
@@ -56,7 +96,7 @@ export function TranscriptList() {
         <input
           type="text"
           className="input pl-9"
-          placeholder="Search by applicant ID or verification ID…"
+          placeholder="Search by filename, status, or reviewer…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -79,49 +119,84 @@ export function TranscriptList() {
               <table className="min-w-full divide-y divide-gray-100">
                 <thead className="bg-brand-50">
                   <tr>
-                    {['Verification ID', 'Applicant ID', 'Type', 'Status', 'Assigned Staff', 'Created', ''].map(
-                      (h) => (
-                        <th
-                          key={h}
-                          className="px-6 py-3 text-left text-xs font-semibold text-brand-700 uppercase tracking-wider"
-                        >
-                          {h}
-                        </th>
-                      )
-                    )}
+                    {['#', 'Transcript', 'Type', 'Status', 'Assigned Reviewer', 'Created', ''].map((h) => (
+                      <th
+                        key={h}
+                        className="px-6 py-3 text-left text-xs font-semibold text-brand-700 uppercase tracking-wider"
+                      >
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filtered.map((t) => (
-                    <tr key={t.verification_id} className="hover:bg-brand-50/40 transition-colors">
-                      <td className="px-6 py-4 text-xs font-mono text-gray-500 max-w-[160px] truncate">
-                        {t.verification_id}
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium text-gray-800">
-                        {t.applicant_id}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 capitalize">
-                        {t.applicant_type.replace('_', ' ')}
-                      </td>
-                      <td className="px-6 py-4">
-                        <StatusBadge status={t.status} />
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {t.assigned_staff_id ?? <span className="text-gray-300 italic">Unassigned</span>}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-400">
-                        {formatDate(t.created_at)}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <Link
-                          to={`/transcripts/${t.verification_id}`}
-                          className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-800"
-                        >
-                          View <ArrowRight size={13} />
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
+                  {filtered.map((t, idx) => {
+                    const globalIndex = page * PAGE_SIZE + idx + 1;
+                    const filename = getFilename(t);
+                    const staffName = t.assigned_staff_id
+                      ? staffMap.get(t.assigned_staff_id)
+                      : null;
+
+                    return (
+                      <tr key={t.verification_id} className="hover:bg-brand-50/40 transition-colors">
+
+                        {/* # — sequential count */}
+                        <td className="px-6 py-4 text-sm font-semibold text-gray-400 w-12">
+                          #{globalIndex}
+                        </td>
+
+                        {/* Transcript filename */}
+                        <td className="px-6 py-4 max-w-[240px]">
+                          <div className="flex items-center gap-2">
+                            <FileText size={15} className="text-gray-400 shrink-0" />
+                            <span
+                              className="text-sm font-medium text-gray-800 truncate"
+                              title={filename}
+                            >
+                              {filename}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Applicant type */}
+                        <td className="px-6 py-4 text-sm text-gray-500 capitalize whitespace-nowrap">
+                          {t.applicant_type.replace('_', ' ')}
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-6 py-4">
+                          <StatusBadge status={t.status} />
+                        </td>
+
+                        {/* Assigned reviewer — name, not ID */}
+                        <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">
+                          {staffName ? (
+                            <div className="flex items-center gap-1.5">
+                              <User size={13} className="text-gray-400 shrink-0" />
+                              <span>{staffName}</span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-300 italic">Unassigned</span>
+                          )}
+                        </td>
+
+                        {/* Created date */}
+                        <td className="px-6 py-4 text-sm text-gray-400 whitespace-nowrap">
+                          {formatDate(t.created_at)}
+                        </td>
+
+                        {/* View link */}
+                        <td className="px-6 py-4 text-right">
+                          <Link
+                            to={`/transcripts/${t.verification_id}`}
+                            className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-800"
+                          >
+                            View <ArrowRight size={13} />
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
