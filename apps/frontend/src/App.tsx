@@ -7,7 +7,7 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { TranscriptList } from './pages/TranscriptList';
 import { TranscriptDetail } from './pages/TranscriptDetail';
-import { CreateTranscript } from './pages/CreateTranscript';
+import { NewVerification } from './pages/NewVerification';
 import { AdminUsers } from './pages/AdminUsers';
 
 const queryClient = new QueryClient({
@@ -30,7 +30,7 @@ export default function App() {
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/transcripts" element={<TranscriptList />} />
-              <Route path="/transcripts/new" element={<CreateTranscript />} />
+              <Route path="/transcripts/new" element={<NewVerification />} />
               <Route path="/transcripts/:id" element={<TranscriptDetail />} />
               <Route path="/admin/users" element={<AdminUsers />} />
             </Route>
