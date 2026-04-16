@@ -21,3 +21,8 @@ variable "env" {
     error_message = "env must be 'dev' or 'prod'."
   }
 }
+
+variable "api_alb_dns_name" {
+  type        = string
+  description = "DNS name of the backend ALB (without scheme) — e.g. msbn-dev-alb-123.us-east-1.elb.amazonaws.com"
+}
