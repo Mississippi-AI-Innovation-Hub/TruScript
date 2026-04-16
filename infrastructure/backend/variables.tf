@@ -151,3 +151,8 @@ variable "log_retention_days" {
   type    = number
   default = 7
 }
+
+variable "keycloak_hostname" {
+  type        = string
+  description = "Public hostname (CloudFront domain or custom domain) for Keycloak — sets KC_HOSTNAME / KC_HOSTNAME_ADMIN"
+}

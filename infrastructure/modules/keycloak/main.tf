@@ -28,6 +28,12 @@ resource "aws_ecs_task_definition" "keycloak" {
       { name = "KC_HOSTNAME_STRICT",       value = "false" },
       { name = "KC_HOSTNAME_STRICT_HTTPS", value = "false" },
       { name = "KC_HTTP_PORT",             value = "8080" },
+      # KC_PROXY=edge tells Keycloak it's behind a reverse proxy that handles TLS.
+      # Without this the admin-console login loop sets cookies for the wrong host
+      # and returns "Cookie not found" after credential entry.
+      { name = "KC_PROXY",                 value = "edge" },
+      { name = "KC_HOSTNAME",              value = var.hostname },
+      { name = "KC_HOSTNAME_ADMIN",        value = var.hostname },
     ]
 
     secrets = [
