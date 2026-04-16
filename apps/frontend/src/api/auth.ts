@@ -25,4 +25,7 @@ export const authApi = {
     apiClient
       .get<UserResponse[]>('/api/v1/auth/users', { params: search ? { search } : {} })
       .then((r) => r.data),
+
+  listStaff: () =>
+    apiClient.get<UserResponse[]>('/api/v1/auth/staff').then((r) => r.data),
 };
