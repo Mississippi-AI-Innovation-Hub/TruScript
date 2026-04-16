@@ -439,7 +439,7 @@ resource "aws_lb_listener_rule" "keycloak" {
   }
 
   condition {
-    path_pattern { values = ["/auth/*", "/realms/*", "/resources/*"] }
+    path_pattern { values = ["/auth/*", "/realms/*", "/resources/*", "/admin", "/admin/*"] }
   }
 }
 
@@ -528,6 +528,7 @@ module "keycloak_service" {
   log_group                 = aws_cloudwatch_log_group.keycloak.name
   aws_region                = var.aws_region
   admin_password_secret_arn = aws_secretsmanager_secret.keycloak_admin.arn
+  hostname                  = var.keycloak_hostname
   tags                      = local.common_tags
 }
 
