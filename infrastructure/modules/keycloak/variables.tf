@@ -55,6 +55,11 @@ variable "admin_password_secret_arn" {
   description = "Secrets Manager ARN for KEYCLOAK_ADMIN_PASSWORD"
 }
 
+variable "hostname" {
+  type        = string
+  description = "Public hostname (ALB DNS or custom domain) Keycloak is reachable at — used for KC_HOSTNAME / KC_PROXY"
+}
+
 variable "tags" {
   type    = map(string)
   default = {}

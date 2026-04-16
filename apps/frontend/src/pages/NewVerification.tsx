@@ -36,7 +36,6 @@ import {
   Eye,
   Paperclip,
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import apiClient from '../api/client';
 import { transcriptsApi } from '../api/transcripts';
@@ -114,7 +113,7 @@ type PagePhase = 'upload' | 'processing' | 'results';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function fileIcon(mime: string, filename: string): React.ReactNode {
+function fileIcon(mime: string, _filename: string): React.ReactNode {
   if (mime.startsWith('image/')) return <Image size={16} className="text-blue-500" />;
   if (mime === 'application/pdf') return <FileText size={16} className="text-red-500" />;
   return <File size={16} className="text-gray-400" />;

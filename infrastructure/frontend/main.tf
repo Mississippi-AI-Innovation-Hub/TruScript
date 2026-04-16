@@ -94,10 +94,46 @@ resource "aws_cloudfront_distribution" "frontend" {
   price_class         = "PriceClass_100"
   tags                = local.common_tags
 
+  # Origin 1 — S3 static assets
   origin {
     domain_name              = aws_s3_bucket.frontend.bucket_regional_domain_name
     origin_id                = "s3-frontend"
     origin_access_control_id = aws_cloudfront_origin_access_control.frontend.id
+  }
+
+  # Origin 2 — Backend ALB (HTTP only — CloudFront → ALB runs inside AWS network)
+  origin {
+    domain_name = var.api_alb_dns_name
+    origin_id   = "alb-api"
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "http-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  # /api/* — forward everything to the ALB, no caching
+  ordered_cache_behavior {
+    path_pattern           = "/api/*"
+    target_origin_id       = "alb-api"
+    viewer_protocol_policy = "https-only"
+    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = false
+
+    forwarded_values {
+      # Forward all headers so Authorization: Bearer token reaches the API
+      headers      = ["*"]
+      query_string = true
+      cookies { forward = "all" }
+    }
+
+    # Never cache API responses
+    default_ttl = 0
+    max_ttl     = 0
+    min_ttl     = 0
   }
 
   default_cache_behavior {
