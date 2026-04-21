@@ -119,7 +119,19 @@ variable "keycloak_memory" {
 variable "bedrock_model_id" {
   type        = string
   default     = "anthropic.claude-3-haiku-20240307-v1:0"
-  description = "Bedrock foundation model ID for fraud analysis"
+  description = "Optional legacy default; pipeline uses bedrock_kb_model_arn for retrieve and generate"
+}
+
+variable "bedrock_kb_id" {
+  type        = string
+  default     = ""
+  description = "Bedrock knowledge base ID used for retrieve and generate audit"
+}
+
+variable "bedrock_kb_model_arn" {
+  type        = string
+  default     = ""
+  description = "Bedrock model arn used by knowledge base retrieve and generate"
 }
 
 variable "rekognition_project_version_arn" {

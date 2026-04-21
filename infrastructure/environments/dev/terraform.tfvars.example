@@ -57,7 +57,11 @@ keycloak_cpu      = 512
 keycloak_memory   = 1024
 
 # ── ML ────────────────────────────────────────────────────────────────────────
-# Claude Haiku is cheapest for dev testing
+# pipeline lambda uses knowledge base retrieve and generate (required)
+bedrock_kb_id = "TODO: bedrock knowledge base id"
+bedrock_kb_model_arn = "TODO: arn:aws:bedrock:REGION:ACCOUNT:foundation-model/MODEL_ID"
+
+# optional legacy variable; not passed to pipeline lambda
 bedrock_model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
 # Leave empty until you train a Rekognition model (optional for Phase 1)

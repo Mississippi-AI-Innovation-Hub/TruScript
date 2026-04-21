@@ -44,7 +44,10 @@ keycloak_cpu      = 1024
 keycloak_memory   = 2048
 
 # ── ML ────────────────────────────────────────────────────────────────────────
-# Use more capable model in prod
+bedrock_kb_id = "TODO: bedrock knowledge base id"
+bedrock_kb_model_arn = "TODO: arn:aws:bedrock:REGION:ACCOUNT:foundation-model/MODEL_ID"
+
+# optional legacy variable; not passed to pipeline lambda
 bedrock_model_id = "anthropic.claude-3-5-sonnet-20241022-v2:0"
 
 # ARN of trained + deployed Rekognition Custom Labels model

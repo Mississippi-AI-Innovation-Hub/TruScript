@@ -23,18 +23,6 @@ output "rds_endpoint" {
   description = "RDS PostgreSQL connection endpoint"
 }
 
-output "textract_lambda_arn" {
-  value = module.textract_lambda.function_arn
-}
-
-output "fraud_analyzer_lambda_arn" {
-  value = module.fraud_analyzer_lambda.function_arn
-}
-
-output "rekognition_lambda_arn" {
-  value = module.rekognition_lambda.function_arn
-}
-
 output "vpc_id" {
   value = aws_vpc.main.id
 }

@@ -34,6 +34,19 @@ htmlcov/
 .coverage
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+.cache/
+
+# JS / TS tooling caches
+*.tsbuildinfo
+.eslintcache
+.stylelintcache
+.parcel-cache/
+.turbo/
+.next/
+out/
+.nuxt/
+vite.config.ts.timestamp-*
 
 # Node
 node_modules/
@@ -46,6 +59,9 @@ node_modules/
 *.bak
 *.pyc
 
+# local scratch notes
+thoughts.md
+
 # OS-specific files
 .DS_Store
 *.DS_Store
@@ -55,6 +71,8 @@ Thumbs.db
 **/.terraform/
 *.tfstate
 *.tfstate.backup
+crash.*.log
+crash.log
 *.tfvars
 !*.tfvars.example
 
@@ -65,3 +83,7 @@ ml-data/**/*.jpeg
 ml-data/**/*.tiff
 ml-data/**/*.tif
 ml-data/**/*.pdf
+
+# logs
+*.log
+logs/
