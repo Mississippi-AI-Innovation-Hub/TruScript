@@ -353,14 +353,10 @@ resource "aws_iam_role_policy" "api_task" {
         ]
       },
       {
-        Sid    = "InvokeLambdas"
+        Sid    = "InvokePipelineLambda"
         Effect = "Allow"
         Action = ["lambda:InvokeFunction"]
-        Resource = [
-          module.textract_lambda.function_arn,
-          module.fraud_analyzer_lambda.function_arn,
-          module.rekognition_lambda.function_arn,
-        ]
+        Resource = [module.pipeline_orchestrator_lambda.function_arn]
       },
       {
         Sid      = "ReadSecrets"
@@ -496,9 +492,7 @@ module "api_service" {
     { name = "KEYCLOAK_CLIENT_ID",       value = "msbn-api" },
     { name = "AWS_REGION_NAME",          value = var.aws_region },
     { name = "S3_DOCUMENTS_BUCKET",      value = aws_s3_bucket.documents.id },
-    { name = "LAMBDA_TEXTRACT_ARN",      value = module.textract_lambda.function_arn },
-    { name = "LAMBDA_FRAUD_ARN",         value = module.fraud_analyzer_lambda.function_arn },
-    { name = "LAMBDA_REKOGNITION_ARN",   value = module.rekognition_lambda.function_arn },
+    { name = "LAMBDA_PIPELINE_ARN",      value = module.pipeline_orchestrator_lambda.function_arn },
     { name = "ALLOWED_ORIGINS",          value = jsonencode(split(",", var.allowed_origins)) },
   ]
 
@@ -550,99 +544,5 @@ module "database" {
   tags               = local.common_tags
 }
 
-# ── Lambda — Textract ─────────────────────────────────────────────────────────
-
-module "textract_lambda" {
-  source = "../modules/lambda-function"
-
-  name        = "${local.name_prefix}-textract-processor"
-  source_dir  = "${path.root}/../lambdas/textract_processor"
-  handler     = "handler.lambda_handler"
-  runtime     = "python3.12"
-  timeout     = 300
-  memory_size = 512
-
-  environment = {
-    ENV             = var.env
-    S3_BUCKET       = aws_s3_bucket.documents.id
-    AWS_REGION_NAME = var.aws_region
-  }
-
-  policy_statements = [
-    {
-      Effect   = "Allow"
-      Action   = ["textract:AnalyzeDocument", "textract:DetectDocumentText", "textract:StartDocumentTextDetection", "textract:GetDocumentTextDetection"]
-      Resource = "*"
-    },
-    {
-      Effect   = "Allow"
-      Action   = ["s3:GetObject"]
-      Resource = "${aws_s3_bucket.documents.arn}/*"
-    },
-  ]
-
-  tags = local.common_tags
-}
-
-# ── Lambda — Bedrock Fraud Analyzer ──────────────────────────────────────────
-
-module "fraud_analyzer_lambda" {
-  source = "../modules/lambda-function"
-
-  name        = "${local.name_prefix}-fraud-analyzer"
-  source_dir  = "${path.root}/../lambdas/fraud_analyzer"
-  handler     = "handler.lambda_handler"
-  runtime     = "python3.12"
-  timeout     = 120
-  memory_size = 256
-
-  environment = {
-    ENV              = var.env
-    BEDROCK_MODEL_ID = var.bedrock_model_id
-    AWS_REGION_NAME  = var.aws_region
-  }
-
-  policy_statements = [
-    {
-      Effect   = "Allow"
-      Action   = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
-      Resource = "arn:aws:bedrock:${var.aws_region}::foundation-model/${var.bedrock_model_id}"
-    },
-  ]
-
-  tags = local.common_tags
-}
-
-# ── Lambda — Rekognition Checker ──────────────────────────────────────────────
-
-module "rekognition_lambda" {
-  source = "../modules/lambda-function"
-
-  name        = "${local.name_prefix}-rekognition-checker"
-  source_dir  = "${path.root}/../lambdas/rekognition_checker"
-  handler     = "handler.lambda_handler"
-  runtime     = "python3.12"
-  timeout     = 60
-  memory_size = 256
-
-  environment = {
-    ENV             = var.env
-    S3_BUCKET       = aws_s3_bucket.documents.id
-    AWS_REGION_NAME = var.aws_region
-  }
-
-  policy_statements = [
-    {
-      Effect   = "Allow"
-      Action   = ["rekognition:DetectText", "rekognition:DetectLabels", "rekognition:DetectFaces"]
-      Resource = "*"
-    },
-    {
-      Effect   = "Allow"
-      Action   = ["s3:GetObject"]
-      Resource = "${aws_s3_bucket.documents.arn}/*"
-    },
-  ]
-
-  tags = local.common_tags
-}
+# standalone textract, rekognition, and fraud analyzer lambdas were removed.
+# use module.pipeline_orchestrator_lambda in ml.tf for the full ml path.

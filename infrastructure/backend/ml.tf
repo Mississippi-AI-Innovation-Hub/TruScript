@@ -115,7 +115,8 @@ module "pipeline_orchestrator_lambda" {
     AWS_REGION_NAME               = var.aws_region
     S3_DOCUMENTS_BUCKET           = aws_s3_bucket.documents.id
     S3_ML_DATA_BUCKET             = aws_s3_bucket.ml_data.id
-    BEDROCK_MODEL_ID              = var.bedrock_model_id
+    BEDROCK_KB_ID                 = var.bedrock_kb_id
+    BEDROCK_KB_MODEL_ARN          = var.bedrock_kb_model_arn
     API_INTERNAL_URL              = var.api_internal_url
     API_CALLBACK_SECRET           = var.api_callback_secret
     REKOGNITION_PROJECT_VERSION_ARN = var.rekognition_project_version_arn
@@ -144,7 +145,15 @@ module "pipeline_orchestrator_lambda" {
       ]
       Resource = "*"
     },
-    # Bedrock — invoke Claude for fraud analysis
+    # Bedrock — knowledge base plus generation model invoke
+    {
+      Effect   = "Allow"
+      Action   = [
+        "bedrock:Retrieve",
+        "bedrock:RetrieveAndGenerate",
+      ]
+      Resource = "*"
+    },
     {
       Effect   = "Allow"
       Action   = [
@@ -176,19 +185,7 @@ module "pipeline_orchestrator_lambda" {
   tags = local.common_tags
 }
 
-# Allow API task role to invoke the pipeline orchestrator
-resource "aws_iam_role_policy" "api_invoke_pipeline" {
-  name = "${local.name_prefix}-api-invoke-pipeline"
-  role = aws_iam_role.api_task.id
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["lambda:InvokeFunction"]
-      Resource = module.pipeline_orchestrator_lambda.function_arn
-    }]
-  })
-}
+# api ecs task invokes pipeline via aws_iam_role_policy.api_task in main.tf
 
 # ── Secrets Manager — API callback secret ─────────────────────────────────────
 # Lambda uses this secret to authenticate its PATCH calls back to FastAPI
