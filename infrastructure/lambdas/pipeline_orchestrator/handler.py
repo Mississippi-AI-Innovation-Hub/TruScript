@@ -470,27 +470,30 @@ def save_result_to_s3(verification_id: str, result: dict) -> None:
 
 def patch_fastapi(verification_id: str, summary: dict) -> bool:
     if not API_INTERNAL_URL:
-        print("[WARN] API_INTERNAL_URL not set skipping callback")
+        print("[WARN] API_INTERNAL_URL not set — skipping callback")
+        return False
+    if not API_CALLBACK_SECRET:
+        print("[WARN] API_CALLBACK_SECRET not set — skipping callback")
         return False
     try:
         payload = json.dumps({"summary": summary, "status": summary["overall_status"]}).encode()
-        url = f"{API_INTERNAL_URL.rstrip('/')}/api/v1/transcripts/{verification_id}"
+        url = f"{API_INTERNAL_URL.rstrip('/')}/api/v1/transcripts/{verification_id}/ml-result"
         req = urllib.request.Request(
             url,
             data=payload,
-            method="PATCH",
+            method="POST",
             headers={
                 "Content-Type": "application/json",
                 "X-Lambda-Secret": API_CALLBACK_SECRET,
             },
         )
         with urllib.request.urlopen(req, timeout=15) as resp:
-            print(f"[INFO] FastAPI PATCH response: {resp.status}")
-            return resp.status in (200, 204)
+            print(f"[INFO] FastAPI ml-result POST response: {resp.status}")
+            return resp.status in (200, 201, 204)
     except urllib.error.HTTPError as e:
-        print(f"[ERROR] FastAPI PATCH HTTP error {e.code}: {e.read()}")
+        print(f"[ERROR] FastAPI ml-result POST HTTP error {e.code}: {e.read()}")
     except Exception as e:
-        print(f"[ERROR] FastAPI PATCH failed: {e}")
+        print(f"[ERROR] FastAPI ml-result POST failed: {e}")
     return False
 
 

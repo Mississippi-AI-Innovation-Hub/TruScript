@@ -98,9 +98,13 @@ async def get_current_user(
             detail="Authentication service (Keycloak) is unreachable.",
         )
 
-    # Validate issuer matches configured realm
+    # Validate issuer matches configured realm.
+    # Strip the scheme before comparing: Keycloak behind an HTTP ALB + CloudFront
+    # HTTPS proxy may embed http:// in the `iss` claim even though the public
+    # URL is https://.  Hostname + path is the meaningful identity check.
     expected_issuer = f"{settings.keycloak_url}/realms/{settings.keycloak_realm}"
-    if payload.get("iss") != expected_issuer:
+    token_iss: str = payload.get("iss", "")
+    if token_iss.split("://", 1)[-1] != expected_issuer.split("://", 1)[-1]:
         raise _unauthorized
 
     return payload
