@@ -275,15 +275,76 @@ async def retry_verification(
     except TranscriptNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
 
-    # Locate the S3 key from the first document that has one
+    # Locate document details from the first document record
     s3_key = ""
     doc_id = ""
+    storage_path = ""
+    filename = ""
     for d in transcript.documents:
         raw = d if isinstance(d, dict) else {}
-        if raw.get("s3_key"):
-            s3_key = raw["s3_key"]
-            doc_id = raw.get("document_id", "")
+        doc_id = doc_id or raw.get("document_id", "")
+        s3_key = s3_key or raw.get("s3_key", "")
+        storage_path = storage_path or raw.get("storage_path", "")
+        filename = filename or raw.get("original_filename", "")
+        if s3_key:
             break
+
+    pipeline_arn = os.environ.get("LAMBDA_PIPELINE_ARN", "")
+
+    # If no S3 key stored, try to recover it:
+    # 1. The file may already be in S3 under the expected path (uploads uploaded before
+    #    s3_key was persisted to the DB). Check S3 using the canonical key pattern.
+    # 2. If not in S3 but still on local disk, upload it now.
+    if pipeline_arn and not s3_key and filename:
+        import boto3 as _boto3
+        import json as _json
+        _bucket = os.environ.get("S3_DOCUMENTS_BUCKET", "")
+        _region = os.environ.get("AWS_REGION_NAME", "us-east-1")
+        candidate_key = f"uploads/{verification_id}/{filename}"
+
+        recovered = False
+        if _bucket:
+            # Check if the file already exists in S3 at the expected path
+            try:
+                def _head():
+                    _boto3.client("s3", region_name=_region).head_object(
+                        Bucket=_bucket, Key=candidate_key
+                    )
+                await asyncio.to_thread(_head)
+                s3_key = candidate_key  # found in S3 — use it
+                recovered = True
+            except Exception:
+                pass  # not found in S3 — try local disk below
+
+            # Fall back to local disk upload if file is still there
+            if not recovered and storage_path and os.path.isfile(storage_path):
+                from app.api.v1.endpoints.upload import _upload_to_s3
+                with open(storage_path, "rb") as fh:
+                    content = fh.read()
+                if await _upload_to_s3(content, candidate_key):
+                    s3_key = candidate_key
+                    recovered = True
+
+        # Persist the recovered key back into the DB document record so future
+        # retries don't have to rediscover it.
+        if recovered:
+            updated_docs = []
+            for d in transcript.documents:
+                raw = dict(d) if isinstance(d, dict) else {}
+                if not raw.get("s3_key") and (
+                    raw.get("document_id") == doc_id or not doc_id
+                ):
+                    raw["s3_key"] = s3_key
+                updated_docs.append(raw)
+            from sqlalchemy import text as sa_text
+            await repo._session.execute(
+                sa_text(
+                    "UPDATE transcript_verifications "
+                    "SET documents = cast(:docs as jsonb) "
+                    "WHERE verification_id = :vid"
+                ),
+                {"docs": _json.dumps(updated_docs), "vid": verification_id},
+            )
 
     # Reset the record: clear old results, set back to in_progress
     reset_dto = UpdateTranscriptDTO(
@@ -298,7 +359,6 @@ async def retry_verification(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
 
     # Re-invoke the pipeline
-    pipeline_arn = os.environ.get("LAMBDA_PIPELINE_ARN", "")
     if pipeline_arn and s3_key:
         from app.api.v1.endpoints.upload import _invoke_pipeline_lambda
         await _invoke_pipeline_lambda(
@@ -308,18 +368,13 @@ async def retry_verification(
             s3_key=s3_key,
         )
     else:
-        from app.api.v1.endpoints.upload import _run_mock_pipeline
-        filename = ""
-        for d in transcript.documents:
-            raw = d if isinstance(d, dict) else {}
-            filename = raw.get("original_filename", "")
-            if filename:
-                break
+        reason = "LAMBDA_PIPELINE_ARN not configured" if not pipeline_arn \
+            else "file no longer on disk and no S3 key recorded — please re-upload"
+        from app.api.v1.endpoints.upload import _mark_pipeline_failed
         background_tasks.add_task(
-            _run_mock_pipeline,
+            _mark_pipeline_failed,
             verification_id=verification_id,
-            filename=filename or "unknown",
-            applicant_type=transcript.applicant_type,
+            reason=reason,
         )
 
     return _to_http_response(result)
