@@ -35,9 +35,11 @@ class UpdateTranscriptDTO:
     status: VerificationStatus | None = None
     # Nested JSONB payloads — validated at the infrastructure boundary
     summary: dict[str, Any] | None = None
+    clear_summary: bool = False          # set True to wipe existing summary (e.g. retry)
     annotations_to_append: list[dict[str, Any]] = field(default_factory=list)
     documents_to_append: list[dict[str, Any]] = field(default_factory=list)
     completed_at: datetime | None = None
+    clear_completed_at: bool = False     # set True to reset completed_at to None
     requesting_user_id: str | None = None
 
 

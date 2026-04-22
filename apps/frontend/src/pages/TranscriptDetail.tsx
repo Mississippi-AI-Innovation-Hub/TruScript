@@ -20,6 +20,8 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCw,
+  RefreshCcw,
+  Loader2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { transcriptsApi, authApi, apiClient } from '../api';
@@ -453,6 +455,9 @@ export function TranscriptDetail() {
     queryKey: ['transcript', id],
     queryFn: () => transcriptsApi.get(id!),
     enabled: !!id,
+    // Keep polling while the pipeline is running (e.g. after a retry)
+    refetchInterval: (query) =>
+      query.state.data?.status === 'in_progress' ? 3000 : false,
   });
 
   const { data: reviews } = useQuery({
@@ -528,6 +533,17 @@ export function TranscriptDetail() {
     onError: () => toast.error('Failed to update status.'),
   });
 
+  const retryMutation = useMutation({
+    mutationFn: () => transcriptsApi.retry(id!),
+    onSuccess: () => {
+      toast.success('Re-running verification pipeline…');
+      // Invalidating causes the query to refetch; the refetchInterval above
+      // will then keep polling until the status leaves in_progress.
+      queryClient.invalidateQueries({ queryKey: ['transcript', id] });
+    },
+    onError: () => toast.error('Failed to retry — please try again.'),
+  });
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -563,8 +579,33 @@ export function TranscriptDetail() {
             <h1 className="text-2xl font-bold text-brand-900">Verification Detail</h1>
             <p className="text-xs font-mono text-gray-400 mt-1">{transcript.verification_id}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <StatusBadge status={transcript.status} />
+
+            {/* Retry — shown when flagged so staff can re-run the pipeline */}
+            {transcript.status === 'flagged' && (
+              <button
+                onClick={() => retryMutation.mutate()}
+                disabled={retryMutation.isPending}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-60"
+              >
+                {retryMutation.isPending ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <RefreshCcw size={14} />
+                )}
+                {retryMutation.isPending ? 'Retrying…' : 'Retry Verification'}
+              </button>
+            )}
+
+            {/* Re-analyzing indicator */}
+            {transcript.status === 'in_progress' && (
+              <span className="flex items-center gap-1.5 text-sm text-blue-600 font-medium">
+                <Loader2 size={14} className="animate-spin" />
+                Re-analyzing…
+              </span>
+            )}
+
             {isAdmin && (
               <button
                 onClick={() => setShowDeleteModal(true)}

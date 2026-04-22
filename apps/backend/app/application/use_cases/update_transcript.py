@@ -127,10 +127,14 @@ class UpdateTranscriptUseCase:
         if dto.status is not None:
             entity.status = dto.status
 
-        if dto.completed_at is not None:
+        if dto.clear_completed_at:
+            entity.completed_at = None
+        elif dto.completed_at is not None:
             entity.completed_at = dto.completed_at
 
-        if dto.summary is not None:
+        if dto.clear_summary:
+            entity.summary = None
+        elif dto.summary is not None:
             summary = _parse_summary(dto.summary)
             entity.attach_summary(summary)
 
