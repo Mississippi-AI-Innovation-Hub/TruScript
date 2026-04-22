@@ -1,14 +1,12 @@
 """
 Transcript Upload endpoint — accepts one or more transcript files,
-creates a verification record per file, and launches the ML pipeline
-(real Lambda if configured, otherwise a built-in mock pipeline).
+creates a verification record per file, and launches the ML pipeline.
 
 Flow:
   1. Staff POSTs multipart files + applicant_type
   2. We create TranscriptVerification (status=in_progress) for each file
   3. File uploaded to S3 synchronously (Lambda needs the S3 key)
-  4. Pipeline Lambda invoked async (fire-and-forget) when LAMBDA_PIPELINE_ARN is set;
-     falls back to built-in mock pipeline if the env var is absent or S3 fails
+  4. Pipeline Lambda invoked async (fire-and-forget) via LAMBDA_PIPELINE_ARN
   5. Response returned immediately with verification_id list
   6. Frontend polls GET /transcripts/{id} for status changes
   7. Lambda POSTs results to POST /transcripts/{id}/ml-result with X-Lambda-Secret
@@ -20,10 +18,9 @@ import hashlib
 import json
 import logging
 import os
-import random
 import uuid
 from datetime import datetime, timezone
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import (
     APIRouter,
@@ -186,7 +183,6 @@ async def upload_transcripts(
         # ── Launch ML pipeline ────────────────────────────────────────────────
         pipeline_arn = os.environ.get("LAMBDA_PIPELINE_ARN", "")
         if pipeline_arn and s3_uploaded:
-            # Real Lambda: fire-and-forget async invocation
             await _invoke_pipeline_lambda(
                 pipeline_arn=pipeline_arn,
                 verification_id=result.verification_id,
@@ -194,22 +190,16 @@ async def upload_transcripts(
                 s3_key=s3_key,
             )
         else:
-            # Mock fallback: in-process simulation
-            if not pipeline_arn:
-                logger.info(
-                    "LAMBDA_PIPELINE_ARN not set — using mock pipeline for %s",
-                    result.verification_id,
-                )
-            else:
-                logger.warning(
-                    "S3 upload failed for %s — falling back to mock pipeline",
-                    result.verification_id,
-                )
+            # Cannot run the pipeline — mark failed immediately so the UI
+            # doesn't spin indefinitely.
+            reason = "LAMBDA_PIPELINE_ARN not configured" if not pipeline_arn else "S3 upload failed"
+            logger.error(
+                "Pipeline cannot start for %s: %s", result.verification_id, reason
+            )
             background_tasks.add_task(
-                _run_mock_pipeline,
+                _mark_pipeline_failed,
                 verification_id=result.verification_id,
-                filename=filename,
-                applicant_type=applicant_type.value,
+                reason=reason,
             )
 
         responses.append(
@@ -225,73 +215,48 @@ async def upload_transcripts(
     return responses
 
 
-# ── Mock ML Pipeline ──────────────────────────────────────────────────────────
-# Simulates the real Lambda pipeline (Textract → Rekognition → Bedrock) with
-# realistic timing and deterministic-but-varied mock results.
+# ── Pipeline failure marker ───────────────────────────────────────────────────
 
-async def _run_mock_pipeline(
-    verification_id: str,
-    filename: str,
-    applicant_type: str,
-) -> None:
+async def _mark_pipeline_failed(verification_id: str, reason: str = "") -> None:
     """
-    Simulate the full ML fraud-detection pipeline in the background.
-    Mimics real pipeline timing:  ~3s OCR + ~4s Rekognition + ~7s Bedrock
+    Called when the pipeline cannot start (no Lambda ARN or S3 failure).
+    Marks the transcript as flagged with a clear error summary so the UI
+    shows an actionable state rather than spinning indefinitely.
     """
-    logger.info("Mock pipeline started for %s (%s)", verification_id, filename)
-
+    logger.error("Marking pipeline as failed for %s: %s", verification_id, reason)
     try:
-        # Stage 1 — OCR / Textract
-        await asyncio.sleep(4)
-
-        # Stage 2 — Visual analysis / Rekognition
-        await asyncio.sleep(5)
-
-        # Stage 3 — Bedrock AI fraud analysis
-        await asyncio.sleep(6)
-
-        # Generate mock summary
-        summary = _generate_mock_summary(verification_id, filename, applicant_type)
-        final_status = (
-            VerificationStatus.FLAGGED
-            if summary.get("flags")
-            else VerificationStatus.CLEARED
-        )
-
-        # Persist results via fresh session
         async with AsyncSessionLocal() as session:
             repo = SQLAlchemyTranscriptRepository(session)
             dto = UpdateTranscriptDTO(
                 verification_id=verification_id,
-                status=final_status,
-                summary=summary,
+                status=VerificationStatus.FLAGGED,
                 completed_at=datetime.now(timezone.utc),
+                summary={
+                    "overall_status": "flagged",
+                    "risk_level": "HIGH",
+                    "fraud_score": 0.0,
+                    "ai_recommendation": f"Pipeline error: {reason}. Please retry or contact an administrator.",
+                    "flags": [
+                        {
+                            "flag_id": str(uuid.uuid4()),
+                            "category": "document_integrity",
+                            "severity": "critical",
+                            "rule_code": "PIPELINE_ERROR",
+                            "rule_description": "Verification pipeline could not start",
+                            "evidence": reason,
+                            "explanation": f"The automated verification pipeline failed to start: {reason}",
+                            "source_section": "pipeline",
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                    ],
+                    "extracted_data": {},
+                    "rules_applied": [],
+                },
             )
             await UpdateTranscriptUseCase(repo).execute(dto)
             await session.commit()
-
-        logger.info(
-            "Mock pipeline complete for %s — status=%s, flags=%d",
-            verification_id,
-            final_status.value,
-            len(summary.get("flags", [])),
-        )
-
     except Exception as exc:
-        logger.exception("Mock pipeline failed for %s: %s", verification_id, exc)
-        # Mark as failed so frontend doesn't spin forever
-        try:
-            async with AsyncSessionLocal() as session:
-                repo = SQLAlchemyTranscriptRepository(session)
-                dto = UpdateTranscriptDTO(
-                    verification_id=verification_id,
-                    status=VerificationStatus.FLAGGED,
-                    completed_at=datetime.now(timezone.utc),
-                )
-                await UpdateTranscriptUseCase(repo).execute(dto)
-                await session.commit()
-        except Exception:
-            pass
+        logger.exception("Failed to mark pipeline error for %s: %s", verification_id, exc)
 
 
 async def _upload_to_s3(content: bytes, s3_key: str) -> bool:
@@ -349,231 +314,6 @@ async def _invoke_pipeline_lambda(
         logger.error(
             "Lambda invocation failed for verification=%s: %s", verification_id, exc
         )
-
-
-# ── Mock data generation ──────────────────────────────────────────────────────
-
-# Realistic MSBN-aligned scenarios (LOW / MEDIUM / HIGH risk)
-_SCENARIOS: list[dict[str, Any]] = [
-    # ── CLEARED (LOW risk) ─────────────────────────────────────────────────
-    {
-        "risk_level": "LOW",
-        "overall_status": "cleared",
-        "fraud_score": 0.07,
-        "ai_recommendation": (
-            "Transcript appears authentic. All required elements present: "
-            "graduation confirmation, accredited institution (ACEN), and "
-            "complete nursing credit hours. No fraud indicators detected. "
-            "Recommend approval pending standard staff review."
-        ),
-        "extracted_data": {
-            "institution_name": "University of Mississippi Medical Center",
-            "program_name": "Bachelor of Science in Nursing",
-            "degree_awarded": "BSN",
-            "graduation_date": "May 2023",
-            "graduation_confirmed": True,
-            "total_credits": 128.0,
-            "nursing_credits": 72.0,
-            "accreditation_type": "ACEN",
-            "accreditation_body": "Accreditation Commission for Education in Nursing",
-            "extraction_confidence": 0.94,
-            "extraction_notes": "High-confidence extraction. Institutional seal verified.",
-        },
-        "flags": [],
-        "rules_applied": [
-            "GR-001", "GR-002", "PC-001", "PC-002", "PC-003",
-            "AC-001", "AC-002", "DI-001", "DI-002", "FI-001",
-        ],
-    },
-    # ── FLAGGED (MEDIUM risk) ──────────────────────────────────────────────
-    {
-        "risk_level": "MEDIUM",
-        "overall_status": "flagged",
-        "fraud_score": 0.42,
-        "ai_recommendation": (
-            "One or more items require staff review. Transcript from an "
-            "NLNAC-accredited institution with borderline credit hours. "
-            "Missing clinical rotation documentation and graduation date "
-            "is ambiguous. Manual review recommended before approval."
-        ),
-        "extracted_data": {
-            "institution_name": "Mississippi Delta Community College",
-            "program_name": "Associate Degree in Nursing",
-            "degree_awarded": "ADN",
-            "graduation_date": "Fall 2022",
-            "graduation_confirmed": True,
-            "total_credits": 64.0,
-            "nursing_credits": 57.0,
-            "accreditation_type": "NLNAC",
-            "accreditation_body": "National League for Nursing Accrediting Commission",
-            "extraction_confidence": 0.79,
-            "extraction_notes": "Moderate confidence. Graduation date format non-standard.",
-        },
-        "flags": [
-            {
-                "flag_id": str(uuid.uuid4()),
-                "category": "program_completion",
-                "severity": "warning",
-                "rule_code": "PC-003",
-                "rule_description": "Minimum nursing credit hours (60) not met for ADN",
-                "evidence": "Extracted nursing credits: 57 hrs. Required minimum: 60 hrs.",
-                "explanation": (
-                    "The transcript shows 57 nursing credit hours. MSBN requires a minimum "
-                    "of 60 nursing credit hours for an Associate Degree in Nursing program. "
-                    "This may indicate an incomplete program or data extraction error."
-                ),
-                "source_section": "Course Summary / Credit Totals",
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            },
-            {
-                "flag_id": str(uuid.uuid4()),
-                "category": "graduation",
-                "severity": "warning",
-                "rule_code": "GR-002",
-                "rule_description": "Graduation date format non-standard or ambiguous",
-                "evidence": 'Graduation entry reads: "Fall 2022" (semester only, no specific date)',
-                "explanation": (
-                    "MSBN requires a specific graduation date. 'Fall 2022' without a month "
-                    "or day is ambiguous and may not meet documentation standards."
-                ),
-                "source_section": "Degree Header",
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            },
-        ],
-        "rules_applied": [
-            "GR-001", "GR-002", "PC-001", "PC-002", "PC-003",
-            "AC-001", "AC-002", "DI-001", "DI-002", "FI-001",
-        ],
-    },
-    # ── FLAGGED (HIGH risk) ────────────────────────────────────────────────
-    {
-        "risk_level": "HIGH",
-        "overall_status": "flagged",
-        "fraud_score": 0.81,
-        "ai_recommendation": (
-            "Multiple critical fraud indicators detected. Official seal is absent, "
-            "graduation not confirmed, and institution is not in the MSBN-approved "
-            "accreditation list. GPA appears altered (4.0 on a 3.0 scale). "
-            "This transcript requires immediate escalation for detailed human review "
-            "before any licensure action is taken."
-        ),
-        "extracted_data": {
-            "institution_name": "National Online Nursing Academy",
-            "program_name": "Bachelor of Science in Nursing",
-            "degree_awarded": "BSN",
-            "graduation_date": "",
-            "graduation_confirmed": False,
-            "total_credits": 120.0,
-            "nursing_credits": 68.0,
-            "accreditation_type": "OTHER",
-            "accreditation_body": "Unknown",
-            "extraction_confidence": 0.51,
-            "extraction_notes": "Low confidence. Document quality poor. Possible digital alteration.",
-        },
-        "flags": [
-            {
-                "flag_id": str(uuid.uuid4()),
-                "category": "document_integrity",
-                "severity": "critical",
-                "rule_code": "DI-001",
-                "rule_description": "Official institutional seal or registrar stamp not detected",
-                "evidence": "No seal, stamp, or watermark detected in visual analysis of document",
-                "explanation": (
-                    "Authentic nursing transcripts from accredited institutions include an "
-                    "official seal or registrar stamp. Visual analysis detected no such "
-                    "authentication mark, which is a primary fraud indicator per MSBN policy."
-                ),
-                "source_section": "Document Header / Footer",
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            },
-            {
-                "flag_id": str(uuid.uuid4()),
-                "category": "graduation",
-                "severity": "critical",
-                "rule_code": "GR-001",
-                "rule_description": "Graduation confirmation statement absent",
-                "evidence": "No graduation date, degree conferral statement, or completion certificate found",
-                "explanation": (
-                    "The transcript contains no explicit graduation confirmation. "
-                    "MSBN requires documentation that the applicant has completed the nursing "
-                    "program and had a degree conferred. This is a critical requirement."
-                ),
-                "source_section": "Degree Summary",
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            },
-            {
-                "flag_id": str(uuid.uuid4()),
-                "category": "accreditation",
-                "severity": "warning",
-                "rule_code": "AC-001",
-                "rule_description": "Accreditation body not recognized (ACEN/CCNE/NLNAC required)",
-                "evidence": 'Institution accreditation: "Unknown" — not ACEN, CCNE, or NLNAC',
-                "explanation": (
-                    "MSBN accepts nursing programs accredited by ACEN, CCNE, or NLNAC only. "
-                    "The issuing institution does not appear in the approved accreditation list, "
-                    "and no recognized accreditation body is cited on the transcript."
-                ),
-                "source_section": "Institution Header",
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            },
-            {
-                "flag_id": str(uuid.uuid4()),
-                "category": "fraud_indicator",
-                "severity": "critical",
-                "rule_code": "FI-002",
-                "rule_description": "GPA value outside valid academic range",
-                "evidence": "Cumulative GPA: 4.0 / 3.0 (scale maximum exceeded)",
-                "explanation": (
-                    "The transcript lists a GPA of 4.0 on a 3.0 scale, which is mathematically "
-                    "impossible. This is a strong indicator of document tampering or forgery. "
-                    "Immediate escalation is recommended."
-                ),
-                "source_section": "Academic Summary",
-                "created_at": datetime.now(timezone.utc).isoformat(),
-            },
-        ],
-        "rules_applied": [
-            "GR-001", "GR-002", "PC-001", "PC-002", "PC-003",
-            "AC-001", "AC-002", "DI-001", "DI-002", "FI-001", "FI-002", "FI-003",
-        ],
-    },
-]
-
-
-def _generate_mock_summary(
-    verification_id: str,
-    filename: str,
-    applicant_type: str,
-) -> dict[str, Any]:
-    """
-    Deterministically picks a fraud scenario based on filename hash so that
-    the same filename always produces the same result for demo consistency.
-    """
-    seed = int(hashlib.md5(filename.encode()).hexdigest(), 16)
-    scenario = _SCENARIOS[seed % len(_SCENARIOS)]
-
-    # Assign fresh IDs & timestamps so every run is unique
-    summary_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc).isoformat()
-
-    # Re-stamp flag IDs with fresh UUIDs
-    flags = []
-    for f in scenario["flags"]:
-        flags.append({**f, "flag_id": str(uuid.uuid4()), "created_at": now})
-
-    return {
-        "summary_id": summary_id,
-        "verification_id": verification_id,
-        "risk_level": scenario["risk_level"],
-        "fraud_score": scenario["fraud_score"],
-        "overall_status": scenario["overall_status"],
-        "ai_recommendation": scenario["ai_recommendation"],
-        "rules_applied": scenario["rules_applied"],
-        "flags": flags,
-        "extracted_data": scenario["extracted_data"],
-        "created_at": now,
-        "pipeline": "mock",  # Distinguishes mock from real Lambda results
-    }
 
 
 def _guess_mime(ext: str) -> str:
