@@ -6,10 +6,12 @@ creates a verification record per file, and launches the ML pipeline
 Flow:
   1. Staff POSTs multipart files + applicant_type
   2. We create TranscriptVerification (status=in_progress) for each file
-  3. File saved locally (S3 upload attempted if boto3 + bucket configured)
-  4. Background task runs mock ML analysis → PATCHes verification on completion
+  3. File uploaded to S3 synchronously (Lambda needs the S3 key)
+  4. Pipeline Lambda invoked async (fire-and-forget) when LAMBDA_PIPELINE_ARN is set;
+     falls back to built-in mock pipeline if the env var is absent or S3 fails
   5. Response returned immediately with verification_id list
   6. Frontend polls GET /transcripts/{id} for status changes
+  7. Lambda POSTs results to POST /transcripts/{id}/ml-result with X-Lambda-Secret
 """
 from __future__ import annotations
 
@@ -157,6 +159,10 @@ async def upload_transcripts(
         )
         result = await CreateTranscriptUseCase(repo).execute(create_dto)
 
+        # ── Upload to S3 synchronously (Lambda needs the key before it runs) ──
+        s3_key = f"uploads/{result.verification_id}/{filename}"
+        s3_uploaded = await _upload_to_s3(content, s3_key)
+
         # Immediately set to in_progress and attach document
         doc_dict = {
             "document_id": doc_id,
@@ -165,6 +171,7 @@ async def upload_transcripts(
             "mime_type": mime_type,
             "file_size_bytes": len(content),
             "storage_path": storage_path,
+            "s3_key": s3_key if s3_uploaded else "",
             "checksum_sha256": hashlib.sha256(content).hexdigest(),
             "status": DocumentStatus.PROCESSING.value,
             "uploaded_at": datetime.now(timezone.utc).isoformat(),
@@ -176,20 +183,34 @@ async def upload_transcripts(
         )
         await UpdateTranscriptUseCase(repo).execute(update_dto)
 
-        # ── Launch ML pipeline in background ─────────────────────────────────
-        background_tasks.add_task(
-            _run_mock_pipeline,
-            verification_id=result.verification_id,
-            filename=filename,
-            applicant_type=applicant_type.value,
-        )
-
-        # ── (Optional) try to upload to S3 ───────────────────────────────────
-        background_tasks.add_task(
-            _try_s3_upload,
-            local_path=storage_path,
-            s3_key=f"uploads/{result.verification_id}/{filename}",
-        )
+        # ── Launch ML pipeline ────────────────────────────────────────────────
+        pipeline_arn = os.environ.get("LAMBDA_PIPELINE_ARN", "")
+        if pipeline_arn and s3_uploaded:
+            # Real Lambda: fire-and-forget async invocation
+            await _invoke_pipeline_lambda(
+                pipeline_arn=pipeline_arn,
+                verification_id=result.verification_id,
+                document_id=doc_id,
+                s3_key=s3_key,
+            )
+        else:
+            # Mock fallback: in-process simulation
+            if not pipeline_arn:
+                logger.info(
+                    "LAMBDA_PIPELINE_ARN not set — using mock pipeline for %s",
+                    result.verification_id,
+                )
+            else:
+                logger.warning(
+                    "S3 upload failed for %s — falling back to mock pipeline",
+                    result.verification_id,
+                )
+            background_tasks.add_task(
+                _run_mock_pipeline,
+                verification_id=result.verification_id,
+                filename=filename,
+                applicant_type=applicant_type.value,
+            )
 
         responses.append(
             UploadItemResponse(
@@ -273,20 +294,61 @@ async def _run_mock_pipeline(
             pass
 
 
-async def _try_s3_upload(local_path: str, s3_key: str) -> None:
-    """Best-effort S3 upload — silently no-ops if boto3 or bucket not configured."""
+async def _upload_to_s3(content: bytes, s3_key: str) -> bool:
+    """Upload file bytes to S3. Returns True on success, False on failure."""
+    import io
     try:
         import boto3  # type: ignore
-        bucket = os.environ.get("S3_DOCUMENTS_BUCKET")
+        bucket = os.environ.get("S3_DOCUMENTS_BUCKET", "")
         region = os.environ.get("AWS_REGION_NAME", "us-east-1")
         if not bucket:
-            return
-        s3 = boto3.client("s3", region_name=region)
-        with open(local_path, "rb") as fh:
-            s3.upload_fileobj(fh, bucket, s3_key)
-        logger.info("Uploaded %s → s3://%s/%s", local_path, bucket, s3_key)
+            logger.warning("S3_DOCUMENTS_BUCKET not configured — skipping S3 upload")
+            return False
+
+        def _do_upload() -> None:
+            s3 = boto3.client("s3", region_name=region)
+            s3.upload_fileobj(io.BytesIO(content), bucket, s3_key)
+
+        await asyncio.to_thread(_do_upload)
+        logger.info("Uploaded → s3://%s/%s", bucket, s3_key)
+        return True
     except Exception as exc:
-        logger.debug("S3 upload skipped (%s)", exc)
+        logger.error("S3 upload failed for key %s: %s", s3_key, exc)
+        return False
+
+
+async def _invoke_pipeline_lambda(
+    pipeline_arn: str,
+    verification_id: str,
+    document_id: str,
+    s3_key: str,
+) -> None:
+    """Fire-and-forget async Lambda invocation (InvocationType=Event)."""
+    try:
+        import boto3  # type: ignore
+        region = os.environ.get("AWS_REGION_NAME", "us-east-1")
+        payload = json.dumps({
+            "verification_id": verification_id,
+            "document_id": document_id,
+            "s3_key": s3_key,
+        }).encode()
+
+        def _do_invoke() -> None:
+            lam = boto3.client("lambda", region_name=region)
+            lam.invoke(
+                FunctionName=pipeline_arn,
+                InvocationType="Event",  # async — returns 202 immediately
+                Payload=payload,
+            )
+
+        await asyncio.to_thread(_do_invoke)
+        logger.info(
+            "Pipeline Lambda invoked async for verification=%s", verification_id
+        )
+    except Exception as exc:
+        logger.error(
+            "Lambda invocation failed for verification=%s: %s", verification_id, exc
+        )
 
 
 # ── Mock data generation ──────────────────────────────────────────────────────
