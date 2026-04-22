@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import urllib.error
 import urllib.request
 import uuid
@@ -17,6 +18,7 @@ _region = os.environ["AWS_REGION_NAME"]
 textract = boto3.client("textract", region_name=_region)
 rekognition = boto3.client("rekognition", region_name=_region)
 bedrock_agent = boto3.client("bedrock-agent-runtime", region_name=_region)
+bedrock_runtime = boto3.client("bedrock-runtime", region_name=_region)
 s3 = boto3.client("s3", region_name=_region)
 
 # config
@@ -103,6 +105,29 @@ json schema:
 }}
 """
 
+EXTRACTION_PROMPT_TEMPLATE = """
+You are extracting structured information from an academic transcript for nursing licensure verification.
+
+Transcript text:
+{transcript_text}
+
+Extract the following fields. Return ONLY valid JSON — no explanation, no markdown, no code fences.
+
+{{
+  "institution_name": "full legal name of the educational institution (empty string if not found)",
+  "program_name": "full name of the nursing program e.g. Bachelor of Science in Nursing (empty string if not found)",
+  "degree_awarded": "specific degree abbreviation e.g. BSN, ADN, MSN (empty string if not found)",
+  "graduation_date": "graduation or degree conferral date e.g. May 2023 or 2023-05-15 (empty string if not found)",
+  "graduation_confirmed": true or false based on whether the degree award is explicitly stated,
+  "total_credits": total credit or semester hours as a number (0.0 if not found),
+  "nursing_credits": nursing-specific credit hours as a number (0.0 if not found),
+  "accreditation_type": "ACEN, CCNE, NLNAC, Regional, National, or empty string if not found",
+  "accreditation_body": "full name of the accrediting body if mentioned (empty string if not found)",
+  "extraction_confidence": confidence from 0.0 to 1.0 on how clearly the document states these values,
+  "extraction_notes": "brief note on ambiguities or data quality issues"
+}}
+"""
+
 
 def _safe_float(value, default: float = 0.0) -> float:
     try:
@@ -138,6 +163,84 @@ def _normalize_question_result(raw_text: str, fallback_question: str) -> dict:
         "evidence": parsed.get("evidence", []) or [],
         "reasoning": str(parsed.get("reasoning", "")),
     }
+
+
+def _empty_extracted_data(notes: str = "") -> dict:
+    return {
+        "institution_name": "",
+        "program_name": "",
+        "degree_awarded": "",
+        "graduation_date": "",
+        "graduation_confirmed": False,
+        "total_credits": 0.0,
+        "nursing_credits": 0.0,
+        "accreditation_type": "",
+        "accreditation_body": "",
+        "extraction_confidence": 0.0,
+        "extraction_notes": notes or "no text available for extraction",
+    }
+
+
+def extract_structured_data(transcript_text: str) -> dict:
+    """
+    Uses Bedrock (Claude) to extract structured fields from raw Textract text.
+    Returns a dict matching the ExtractedTranscriptData schema.
+    """
+    if not transcript_text.strip():
+        return _empty_extracted_data("no text extracted from document")
+
+    try:
+        prompt = EXTRACTION_PROMPT_TEMPLATE.format(
+            transcript_text=transcript_text[:12000]
+        )
+        body = json.dumps({
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": 1024,
+            "temperature": 0.0,
+            "messages": [{"role": "user", "content": prompt}],
+        })
+        response = bedrock_runtime.invoke_model(
+            modelId=KB_MODEL_ARN,
+            body=body,
+            contentType="application/json",
+            accept="application/json",
+        )
+        response_body = json.loads(response["body"].read())
+        content = response_body.get("content", [])
+        raw_text = content[0].get("text", "") if content else ""
+
+        # Strip markdown code fences if present
+        clean = re.sub(r"```(?:json)?\s*|\s*```", "", raw_text).strip()
+
+        try:
+            extracted = json.loads(clean)
+        except json.JSONDecodeError:
+            # Last resort: find JSON object in the text
+            match = re.search(r"\{.*\}", clean, re.DOTALL)
+            if match:
+                extracted = json.loads(match.group())
+            else:
+                raise ValueError(f"No JSON found in: {clean[:300]}")
+
+        return {
+            "institution_name": str(extracted.get("institution_name") or ""),
+            "program_name": str(extracted.get("program_name") or ""),
+            "degree_awarded": str(extracted.get("degree_awarded") or ""),
+            "graduation_date": str(extracted.get("graduation_date") or ""),
+            "graduation_confirmed": bool(extracted.get("graduation_confirmed", False)),
+            "total_credits": _safe_float(extracted.get("total_credits", 0.0)),
+            "nursing_credits": _safe_float(extracted.get("nursing_credits", 0.0)),
+            "accreditation_type": str(extracted.get("accreditation_type") or ""),
+            "accreditation_body": str(extracted.get("accreditation_body") or ""),
+            "extraction_confidence": max(
+                0.0, min(1.0, _safe_float(extracted.get("extraction_confidence", 0.5)))
+            ),
+            "extraction_notes": str(extracted.get("extraction_notes") or ""),
+        }
+
+    except Exception as e:
+        print(f"[ERROR] structured extraction failed: {e}")
+        return _empty_extracted_data(f"extraction error: {str(e)[:200]}")
 
 
 def load_rules() -> list[dict]:
@@ -320,12 +423,83 @@ def run_audit_questions(
     return {"success": True, "question_results": question_results}
 
 
+def _build_ai_recommendation(
+    extracted_data: dict,
+    flags: list[dict],
+    fraud_score: float,
+    risk_level: str,
+    yes_count: int,
+    no_count: int,
+    uncertain_count: int,
+) -> str:
+    """Build a human-readable AI recommendation from real audit results."""
+    institution = extracted_data.get("institution_name") or "the institution"
+    degree = extracted_data.get("degree_awarded") or "the degree"
+    accred = extracted_data.get("accreditation_type") or ""
+    graduation = extracted_data.get("graduation_date") or ""
+
+    critical_flags = [f for f in flags if f.get("severity") == "critical"]
+    warning_flags = [f for f in flags if f.get("severity") == "warning"]
+    total_checks = yes_count + no_count + uncertain_count
+
+    if risk_level == "HIGH":
+        rec = (
+            f"HIGH RISK — {len(critical_flags)} critical issue(s) detected "
+            f"(fraud score {round(fraud_score * 100)}%). "
+        )
+        if critical_flags:
+            issues = "; ".join(
+                f["rule_description"] for f in critical_flags[:3]
+            )
+            rec += f"Critical findings: {issues}. "
+        rec += "Immediate manual review required before any licensure action."
+
+    elif risk_level == "MEDIUM":
+        rec = (
+            f"MEDIUM RISK — {len(warning_flags)} warning(s) require staff review "
+            f"(fraud score {round(fraud_score * 100)}%). "
+        )
+        if warning_flags:
+            issues = "; ".join(
+                f["rule_description"] for f in warning_flags[:2]
+            )
+            rec += f"Review items: {issues}. "
+        rec += "Manual review recommended before approval."
+
+    else:  # LOW
+        parts = []
+        if institution and institution != "the institution":
+            parts.append(f"{institution}")
+        if degree and degree != "the degree":
+            parts.append(f"{degree}")
+        if accred:
+            parts.append(f"{accred} accredited")
+        if graduation:
+            parts.append(f"graduation {graduation}")
+
+        detail = ". ".join(parts) if parts else "Transcript reviewed"
+        rec = (
+            f"LOW RISK — {detail}. "
+            f"No significant fraud indicators detected (fraud score {round(fraud_score * 100)}%). "
+            "Recommend approval pending standard staff review."
+        )
+
+    if total_checks > 0:
+        rec += (
+            f" Audit: {yes_count}/{total_checks} checks passed, "
+            f"{no_count} failed, {uncertain_count} uncertain."
+        )
+
+    return rec
+
+
 def build_verification_summary(
     verification_id: str,
     textract_result: dict,
     rekognition_result: dict,
     audit_result: dict,
     rules: list[dict],
+    extracted_data: dict,
 ) -> dict:
     now = datetime.now(timezone.utc).isoformat()
     question_results = audit_result.get("question_results", []) if audit_result.get("success") else []
@@ -392,56 +566,51 @@ def build_verification_summary(
 
     if fraud_score >= 0.75:
         risk_level = "HIGH"
-        recommendation = "REJECT"
     elif fraud_score >= 0.4:
         risk_level = "MEDIUM"
-        recommendation = "MANUAL_REVIEW"
     else:
         risk_level = "LOW"
-        recommendation = "APPROVE"
 
     yes_count = len([q for q in question_results if str(q.get("answer", "")).lower() == "yes"])
     no_count = len([q for q in question_results if str(q.get("answer", "")).lower() == "no"])
     uncertain_count = len([q for q in question_results if str(q.get("answer", "")).lower() == "uncertain"])
-    ai_recommendation = (
-        f"audit completed with {len(question_results)} checks, "
-        f"{yes_count} yes, {no_count} no, {uncertain_count} uncertain"
+
+    ai_recommendation = _build_ai_recommendation(
+        extracted_data=extracted_data,
+        flags=flags,
+        fraud_score=fraud_score,
+        risk_level=risk_level,
+        yes_count=yes_count,
+        no_count=no_count,
+        uncertain_count=uncertain_count,
     )
 
     has_critical = any(f["severity"] == "critical" for f in flags)
     has_warnings = any(f["severity"] == "warning" for f in flags)
-    if has_critical or recommendation == "REJECT":
+    if has_critical or fraud_score >= 0.75:
         overall_status = "flagged"
-    elif has_warnings or recommendation == "MANUAL_REVIEW":
+    elif has_warnings or fraud_score >= 0.4:
         overall_status = "flagged"
     else:
         overall_status = "cleared"
+
+    # Attach raw_text and signature_count into extracted_data for storage
+    extracted_data_full = {
+        **extracted_data,
+        "raw_text": textract_result.get("full_text", "")[:2000],
+        "signature_count": textract_result.get("signature_count", 0),
+    }
 
     return {
         "summary_id": str(uuid.uuid4()),
         "verification_id": verification_id,
         "rules_applied": [r["code"] for r in rules if "code" in r],
         "flags": flags,
-        "extracted_data": {
-            "institution_name": "",
-            "program_name": "",
-            "degree_awarded": "",
-            "graduation_date": "",
-            "graduation_confirmed": False,
-            "total_credits": 0.0,
-            "nursing_credits": 0.0,
-            "accreditation_type": "",
-            "accreditation_body": "",
-            "raw_text": textract_result.get("full_text", "")[:2000],
-            "extraction_confidence": 0.0,
-            "extraction_notes": "derived from kb audit and textract analyze document",
-            "signature_count": textract_result.get("signature_count", 0),
-        },
+        "extracted_data": extracted_data_full,
         "overall_status": overall_status,
         "ai_recommendation": ai_recommendation,
         "fraud_score": round(fraud_score, 3),
         "risk_level": risk_level,
-        "recommendation": recommendation,
         "audit_question_results": question_results,
         "pipeline_meta": {
             "textract_success": textract_result.get("success"),
@@ -506,11 +675,11 @@ def lambda_handler(event: dict, context) -> dict:
 
     print(f"[INFO] starting pipeline for verification={verification_id}, s3_key={s3_key}")
 
-    # step 1
+    # step 1 — load fraud rules
     rules = load_rules()
     print(f"[INFO] loaded {len(rules)} fraud detection rules")
 
-    # step 2
+    # step 2 — Textract OCR
     textract_result = run_textract(s3_key)
     print(
         "[INFO] textract extracted "
@@ -518,14 +687,22 @@ def lambda_handler(event: dict, context) -> dict:
         f"{textract_result.get('signature_count', 0)} signatures"
     )
 
-    # step 3
+    # step 3 — Rekognition visual analysis
     rekognition_result = run_rekognition(s3_key)
     print(
         f"[INFO] rekognition seal_detected={rekognition_result.get('seal_detected')}, "
         f"labels={len(rekognition_result.get('labels', []))}"
     )
 
-    # step 4
+    # step 4 — Bedrock structured data extraction from OCR text
+    extracted_data = extract_structured_data(textract_result.get("full_text", ""))
+    print(
+        f"[INFO] extracted institution={extracted_data.get('institution_name')!r} "
+        f"degree={extracted_data.get('degree_awarded')!r} "
+        f"confidence={extracted_data.get('extraction_confidence')}"
+    )
+
+    # step 5 — Bedrock KB audit questions
     audit_result = run_audit_questions(
         verification_id,
         textract_result.get("full_text", ""),
@@ -539,23 +716,24 @@ def lambda_handler(event: dict, context) -> dict:
         f"questions={len(audit_result.get('question_results', []))}"
     )
 
-    # step 5
+    # step 6 — build summary with real extracted data
     summary = build_verification_summary(
         verification_id,
         textract_result,
         rekognition_result,
         audit_result,
         rules,
+        extracted_data,
     )
     print(
         f"[INFO] summary built status={summary['overall_status']} "
         f"flags={len(summary['flags'])} fraud_score={summary['fraud_score']}"
     )
 
-    # step 6
+    # step 7 — persist to S3
     save_result_to_s3(verification_id, summary)
 
-    # step 7
+    # step 8 — callback to FastAPI
     patched = patch_fastapi(verification_id, summary)
     print(f"[INFO] fastapi patch {'succeeded' if patched else 'failed or skipped'}")
 
@@ -566,7 +744,8 @@ def lambda_handler(event: dict, context) -> dict:
         "overall_status": summary["overall_status"],
         "fraud_score": summary["fraud_score"],
         "risk_level": summary["risk_level"],
-        "recommendation": summary["recommendation"],
         "flag_count": len(summary["flags"]),
+        "institution": extracted_data.get("institution_name", ""),
+        "degree": extracted_data.get("degree_awarded", ""),
         "patched_api": patched,
     }
