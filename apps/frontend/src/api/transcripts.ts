@@ -51,6 +51,13 @@ export const transcriptsApi = {
       .get<FlagReviewResponse[]>(`/api/v1/transcripts/${verificationId}/reviews`)
       .then((r) => r.data),
 
+  // ─── Retry pipeline ──────────────────────────────────────────────────────
+
+  retry: (verificationId: string) =>
+    apiClient
+      .post<TranscriptResponse>(`/api/v1/transcripts/${verificationId}/retry`)
+      .then((r) => r.data),
+
   // ─── Annotations ─────────────────────────────────────────────────────────
 
   addAnnotation: (verificationId: string, data: AnnotationRequest) =>
