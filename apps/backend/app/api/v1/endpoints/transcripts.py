@@ -11,13 +11,14 @@ appropriate HTTP status codes at this boundary.
 """
 from __future__ import annotations
 
-from datetime import datetime
+import asyncio
+from datetime import datetime, timezone
 from typing import Annotated, Any
 
 import mimetypes
 import os
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Security, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Security, status
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -84,6 +85,12 @@ class TranscriptListResponse(BaseModel):
     total: int
     skip: int
     limit: int
+
+
+class MLResultRequest(BaseModel):
+    """Payload posted by the pipeline Lambda when analysis is complete."""
+    status: str  # "cleared" | "flagged"
+    summary: dict[str, Any]
 
 
 # ── Dependency: wire the concrete repository into the session ─────────────────
@@ -199,6 +206,53 @@ async def update_transcript(
     return _to_http_response(result)
 
 
+@router.post(
+    "/{verification_id}/ml-result",
+    response_model=TranscriptResponse,
+    include_in_schema=False,  # internal — hide from public Swagger docs
+    summary="Receive ML pipeline results (Lambda callback)",
+)
+async def receive_ml_result(
+    verification_id: str,
+    body: MLResultRequest,
+    x_lambda_secret: str = Header(alias="X-Lambda-Secret", default=""),
+    repo: SQLAlchemyTranscriptRepository = Depends(get_repo),
+) -> TranscriptResponse:
+    """
+    Called by the pipeline Lambda when analysis is complete.
+    Authenticates via the X-Lambda-Secret header shared secret.
+    No JWT required — this is an internal machine-to-machine call.
+    """
+    expected = os.environ.get("API_CALLBACK_SECRET", "")
+    if not expected or x_lambda_secret != expected:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Lambda secret",
+        )
+
+    _status_map = {
+        "cleared": VerificationStatus.CLEARED,
+        "flagged": VerificationStatus.FLAGGED,
+        "in_progress": VerificationStatus.IN_PROGRESS,
+        "failed": VerificationStatus.FLAGGED,
+    }
+    verification_status = _status_map.get(
+        body.status.lower(), VerificationStatus.FLAGGED
+    )
+
+    dto = UpdateTranscriptDTO(
+        verification_id=verification_id,
+        status=verification_status,
+        summary=body.summary,
+        completed_at=datetime.now(timezone.utc),
+    )
+    try:
+        result = await UpdateTranscriptUseCase(repo).execute(dto)
+    except TranscriptNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    return _to_http_response(result)
+
+
 @router.delete(
     "/{verification_id}",
     summary="Permanently delete a transcript verification record",
@@ -267,21 +321,61 @@ async def preview_document(
             detail="DOCX files cannot be previewed in the browser. Please download the file.",
         )
 
-    if not storage_path or not os.path.isfile(storage_path):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="File not found on server storage. It may have been cleaned up.",
-        )
-
     # Guess mime if not stored
     if not mime_type:
         guessed, _ = mimetypes.guess_type(filename)
         mime_type = guessed or "application/octet-stream"
 
-    return FileResponse(
-        path=storage_path,
-        media_type=mime_type,
-        filename=filename,
-        # inline disposition so browsers render rather than download
+    # Serve from local disk if the file still exists
+    if storage_path and os.path.isfile(storage_path):
+        return FileResponse(
+            path=storage_path,
+            media_type=mime_type,
+            filename=filename,
+            headers={"Content-Disposition": f'inline; filename="{filename}"'},
+        )
+
+    # Fall back to S3 (ECS containers lose /tmp on restart)
+    s3_key: str = doc.get("s3_key", "")
+    if s3_key:
+        try:
+            return await _serve_from_s3(s3_key, filename, mime_type)
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to retrieve file from S3: {exc}",
+            )
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="File not found on server storage and no S3 key recorded.",
+    )
+
+
+# ── S3 preview helper ─────────────────────────────────────────────────────────
+
+async def _serve_from_s3(s3_key: str, filename: str, mime_type: str) -> Response:
+    """Download an object from S3 and return it as an inline HTTP response."""
+    import boto3  # type: ignore
+
+    bucket = os.environ.get("S3_DOCUMENTS_BUCKET", "")
+    region = os.environ.get("AWS_REGION_NAME", "us-east-1")
+    if not bucket:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="S3_DOCUMENTS_BUCKET not configured",
+        )
+
+    def _get_bytes() -> bytes:
+        s3 = boto3.client("s3", region_name=region)
+        obj = s3.get_object(Bucket=bucket, Key=s3_key)
+        return obj["Body"].read()
+
+    content = await asyncio.to_thread(_get_bytes)
+    return Response(
+        content=content,
+        media_type=mime_type or "application/octet-stream",
         headers={"Content-Disposition": f'inline; filename="{filename}"'},
     )

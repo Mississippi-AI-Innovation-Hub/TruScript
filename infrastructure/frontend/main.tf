@@ -114,6 +114,95 @@ resource "aws_cloudfront_distribution" "frontend" {
     }
   }
 
+  # Keycloak paths — forward everything to ALB, redirect HTTP→HTTPS
+  # viewer_protocol_policy is redirect-to-https (not https-only) because Keycloak
+  # generates Location: http:// redirects when KC_PROXY=edge reads X-Forwarded-Proto: http
+  # from the ALB. The browser follows http:// → CloudFront bounces it back to https://.
+  ordered_cache_behavior {
+    path_pattern           = "/realms/*"
+    target_origin_id       = "alb-api"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = false
+    forwarded_values {
+      headers      = ["*"]
+      query_string = true
+      cookies { forward = "all" }
+    }
+    default_ttl = 0
+    max_ttl     = 0
+    min_ttl     = 0
+  }
+
+  ordered_cache_behavior {
+    path_pattern           = "/auth/*"
+    target_origin_id       = "alb-api"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = false
+    forwarded_values {
+      headers      = ["*"]
+      query_string = true
+      cookies { forward = "all" }
+    }
+    default_ttl = 0
+    max_ttl     = 0
+    min_ttl     = 0
+  }
+
+  ordered_cache_behavior {
+    path_pattern           = "/resources/*"
+    target_origin_id       = "alb-api"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = false
+    forwarded_values {
+      headers      = ["*"]
+      query_string = true
+      cookies { forward = "all" }
+    }
+    default_ttl = 0
+    max_ttl     = 0
+    min_ttl     = 0
+  }
+
+  ordered_cache_behavior {
+    path_pattern           = "/admin"
+    target_origin_id       = "alb-api"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = false
+    forwarded_values {
+      headers      = ["*"]
+      query_string = true
+      cookies { forward = "all" }
+    }
+    default_ttl = 0
+    max_ttl     = 0
+    min_ttl     = 0
+  }
+
+  ordered_cache_behavior {
+    path_pattern           = "/admin/*"
+    target_origin_id       = "alb-api"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = false
+    forwarded_values {
+      headers      = ["*"]
+      query_string = true
+      cookies { forward = "all" }
+    }
+    default_ttl = 0
+    max_ttl     = 0
+    min_ttl     = 0
+  }
+
   # /api/* — forward everything to the ALB, no caching
   ordered_cache_behavior {
     path_pattern           = "/api/*"
