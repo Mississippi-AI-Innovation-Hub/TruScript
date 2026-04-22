@@ -14,11 +14,12 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timezone
 from typing import Annotated, Any
+from urllib.parse import quote
 
 import mimetypes
 import os
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Security, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Security, status
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -253,6 +254,77 @@ async def receive_ml_result(
     return _to_http_response(result)
 
 
+@router.post(
+    "/{verification_id}/retry",
+    response_model=TranscriptResponse,
+    summary="Re-run the ML pipeline on an already-uploaded transcript",
+)
+async def retry_verification(
+    verification_id: str,
+    background_tasks: BackgroundTasks,
+    current_user: CurrentUser,
+    repo: SQLAlchemyTranscriptRepository = Depends(get_repo),
+) -> TranscriptResponse:
+    """
+    Re-queues the pipeline for a flagged/failed verification without requiring
+    the staff member to re-upload the file.  Resets status → in_progress and
+    clears the previous summary so the UI shows a fresh processing state.
+    """
+    try:
+        transcript = await GetTranscriptUseCase(repo).execute(verification_id)
+    except TranscriptNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+
+    # Locate the S3 key from the first document that has one
+    s3_key = ""
+    doc_id = ""
+    for d in transcript.documents:
+        raw = d if isinstance(d, dict) else {}
+        if raw.get("s3_key"):
+            s3_key = raw["s3_key"]
+            doc_id = raw.get("document_id", "")
+            break
+
+    # Reset the record: clear old results, set back to in_progress
+    reset_dto = UpdateTranscriptDTO(
+        verification_id=verification_id,
+        status=VerificationStatus.IN_PROGRESS,
+        clear_summary=True,
+        clear_completed_at=True,
+    )
+    try:
+        result = await UpdateTranscriptUseCase(repo).execute(reset_dto)
+    except TranscriptNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+
+    # Re-invoke the pipeline
+    pipeline_arn = os.environ.get("LAMBDA_PIPELINE_ARN", "")
+    if pipeline_arn and s3_key:
+        from app.api.v1.endpoints.upload import _invoke_pipeline_lambda
+        await _invoke_pipeline_lambda(
+            pipeline_arn=pipeline_arn,
+            verification_id=verification_id,
+            document_id=doc_id,
+            s3_key=s3_key,
+        )
+    else:
+        from app.api.v1.endpoints.upload import _run_mock_pipeline
+        filename = ""
+        for d in transcript.documents:
+            raw = d if isinstance(d, dict) else {}
+            filename = raw.get("original_filename", "")
+            if filename:
+                break
+        background_tasks.add_task(
+            _run_mock_pipeline,
+            verification_id=verification_id,
+            filename=filename or "unknown",
+            applicant_type=transcript.applicant_type,
+        )
+
+    return _to_http_response(result)
+
+
 @router.delete(
     "/{verification_id}",
     summary="Permanently delete a transcript verification record",
@@ -332,7 +404,7 @@ async def preview_document(
             path=storage_path,
             media_type=mime_type,
             filename=filename,
-            headers={"Content-Disposition": f'inline; filename="{filename}"'},
+            headers={"Content-Disposition": _content_disposition(filename)},
         )
 
     # Fall back to S3 (ECS containers lose /tmp on restart)
@@ -352,6 +424,27 @@ async def preview_document(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="File not found on server storage and no S3 key recorded.",
     )
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _content_disposition(filename: str) -> str:
+    """
+    Build a Content-Disposition header value that is safe for HTTP/1.1.
+
+    HTTP headers are latin-1 by default (RFC 7230).  Filenames that contain
+    non-latin-1 characters (e.g. Unicode spaces, accented letters, CJK) will
+    raise a UnicodeEncodeError in Starlette/uvicorn.
+
+    We emit both the ASCII fallback (stripped) and the RFC 5987 UTF-8 form so
+    every browser gets the right name:
+        inline; filename="ascii_name.pdf"; filename*=UTF-8''url-encoded-name.pdf
+    """
+    # ASCII fallback: replace anything outside latin-1 with '_'
+    ascii_name = filename.encode("latin-1", errors="replace").decode("latin-1")
+    # RFC 5987 UTF-8 form
+    utf8_name = quote(filename, safe="!#$&+-.^_`|~")  # safe chars per RFC 5987
+    return f'inline; filename="{ascii_name}"; filename*=UTF-8\'\'{utf8_name}'
 
 
 # ── S3 preview helper ─────────────────────────────────────────────────────────

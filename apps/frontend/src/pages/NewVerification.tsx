@@ -37,6 +37,7 @@ import {
   Paperclip,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/client';
 import { transcriptsApi } from '../api/transcripts';
 import type { TranscriptResponse, ApplicantType } from '../types';
@@ -360,7 +361,18 @@ function ResultCard({
   onAssign: (verificationId: string) => void;
 }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
+
+  const retryMutation = useMutation({
+    mutationFn: () => transcriptsApi.retry(item.verification_id),
+    onSuccess: () => {
+      toast.success('Re-running verification…');
+      // Invalidate so the polling loop picks up the in_progress status
+      queryClient.invalidateQueries({ queryKey: ['transcript', item.verification_id] });
+    },
+    onError: () => toast.error('Failed to retry — please try again.'),
+  });
 
   const summary = transcriptData?.summary ?? null;
   const riskLevel = getRiskLevel(summary);
@@ -554,7 +566,7 @@ function ResultCard({
       )}
 
       {/* Action bar */}
-      <div className="flex items-center gap-2 px-5 py-3 border-t border-gray-100 bg-gray-50/50">
+      <div className="flex items-center gap-2 px-5 py-3 border-t border-gray-100 bg-gray-50/50 flex-wrap">
         <button
           onClick={() => navigate(`/transcripts/${item.verification_id}`)}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -584,10 +596,37 @@ function ResultCard({
           </button>
         )}
 
-        {!isCleared && criticalCount > 0 && (
-          <span className="ml-auto text-xs text-red-600 font-medium flex items-center gap-1">
-            <AlertCircle size={12} />
-            Requires manual review
+        {/* Retry button — shown when flagged with issues */}
+        {!isCleared && transcriptData?.status === 'flagged' && (criticalCount > 0 || warningCount > 0) && (
+          <>
+            {criticalCount > 0 && (
+              <span className="text-xs text-red-600 font-medium flex items-center gap-1 ml-auto">
+                <AlertCircle size={12} />
+                Requires manual review
+              </span>
+            )}
+            <button
+              onClick={() => retryMutation.mutate()}
+              disabled={retryMutation.isPending}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors disabled:opacity-60 ${
+                criticalCount === 0 ? 'ml-auto' : ''
+              } text-amber-700 bg-amber-50 border-amber-200 hover:bg-amber-100`}
+            >
+              {retryMutation.isPending ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <RefreshCcw size={14} />
+              )}
+              {retryMutation.isPending ? 'Retrying…' : 'Retry Verification'}
+            </button>
+          </>
+        )}
+
+        {/* Re-analyzing indicator — shown after a retry while pipeline runs */}
+        {!isCleared && transcriptData?.status === 'in_progress' && (
+          <span className="ml-auto text-xs text-blue-600 font-medium flex items-center gap-1.5">
+            <Loader2 size={12} className="animate-spin" />
+            Re-analyzing…
           </span>
         )}
       </div>
