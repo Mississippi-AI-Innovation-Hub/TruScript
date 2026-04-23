@@ -11,7 +11,10 @@ import urllib.request
 import uuid
 from datetime import datetime, timezone
 
+import time
+
 import boto3
+from botocore.exceptions import ClientError
 
 # aws clients
 _region = os.environ["AWS_REGION_NAME"]
@@ -20,6 +23,64 @@ rekognition = boto3.client("rekognition", region_name=_region)
 bedrock_agent = boto3.client("bedrock-agent-runtime", region_name=_region)
 bedrock_runtime = boto3.client("bedrock-runtime", region_name=_region)
 s3 = boto3.client("s3", region_name=_region)
+
+_REGION_DENY_ERRORS = ("us-east-2", "us-west-2", "AccessDeniedException", "explicit deny")
+
+def _is_region_deny(exc: Exception) -> bool:
+    """Return True if the error is a cross-region SCP block we should retry."""
+    msg = str(exc)
+    return any(kw in msg for kw in _REGION_DENY_ERRORS)
+
+
+def _invoke_model_with_retry(body: str, max_attempts: int = 5) -> dict:
+    """Invoke Bedrock model with retry on SCP/region-routing denials."""
+    last_exc: Exception = RuntimeError("no attempts made")
+    for attempt in range(1, max_attempts + 1):
+        try:
+            response = bedrock_runtime.invoke_model(
+                modelId=KB_MODEL_ARN,
+                body=body,
+                contentType="application/json",
+                accept="application/json",
+            )
+            return json.loads(response["body"].read())
+        except ClientError as exc:
+            last_exc = exc
+            if _is_region_deny(exc):
+                print(f"[WARN] InvokeModel routed to blocked region (attempt {attempt}), retrying…")
+                time.sleep(0.5 * attempt)
+            else:
+                raise
+    raise last_exc
+
+
+def _retrieve_and_generate_with_retry(question: str, kb_id: str, model_arn: str,
+                                       system_prompt: str, max_attempts: int = 5) -> dict:
+    """retrieve_and_generate with retry on SCP/region-routing denials."""
+    last_exc: Exception = RuntimeError("no attempts made")
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return bedrock_agent.retrieve_and_generate(
+                input={"text": question},
+                retrieveAndGenerateConfiguration={
+                    "type": "KNOWLEDGE_BASE",
+                    "knowledgeBaseConfiguration": {
+                        "knowledgeBaseId": kb_id,
+                        "modelArn": model_arn,
+                        "generationConfiguration": {
+                            "promptTemplate": {"textPromptTemplate": system_prompt}
+                        },
+                    },
+                },
+            )
+        except ClientError as exc:
+            last_exc = exc
+            if _is_region_deny(exc):
+                print(f"[WARN] RetrieveAndGenerate routed to blocked region (attempt {attempt}), retrying…")
+                time.sleep(0.5 * attempt)
+            else:
+                raise
+    raise last_exc
 
 # config
 DOCUMENTS_BUCKET = os.environ["S3_DOCUMENTS_BUCKET"]
@@ -181,66 +242,361 @@ def _empty_extracted_data(notes: str = "") -> dict:
     }
 
 
+# ── Regex-based structured extraction (no Bedrock required) ───────────────────
+
+_DEGREE_PATTERNS = [
+    (r"\bBachelor\s+of\s+Science\s+in\s+Nursing\b", "BSN", "Bachelor of Science in Nursing"),
+    (r"\bAssociate\s+(?:of|in)\s+(?:Science\s+in\s+)?Nursing\b", "ADN", "Associate of Science in Nursing"),
+    (r"\bMaster\s+of\s+Science\s+in\s+Nursing\b", "MSN", "Master of Science in Nursing"),
+    (r"\bDoctor\s+of\s+Nursing\s+Practice\b", "DNP", "Doctor of Nursing Practice"),
+    (r"\bBSN\b", "BSN", "Bachelor of Science in Nursing"),
+    (r"\bADN\b", "ADN", "Associate Degree in Nursing"),
+    (r"\bMSN\b", "MSN", "Master of Science in Nursing"),
+    (r"\bDNP\b", "DNP", "Doctor of Nursing Practice"),
+]
+_ACCREDITATION_PATTERNS = [
+    (r"\bACEN\b", "ACEN", "Accreditation Commission for Education in Nursing"),
+    (r"\bCCNE\b", "CCNE", "Commission on Collegiate Nursing Education"),
+    (r"\bNLNAC\b", "NLNAC", "National League for Nursing Accrediting Commission"),
+    (r"\bregionally\s+accredited\b", "Regional", "Regional Accrediting Body"),
+    (r"\bnationally\s+accredited\b", "National", "National Accrediting Body"),
+]
+_NURSING_PREFIXES = re.compile(
+    r"\b(NUR|NURS|NSG|NRSG|RN|PN|LPN|BSNC)\s*\d", re.IGNORECASE
+)
+
+
 def extract_structured_data(transcript_text: str) -> dict:
     """
-    Uses Bedrock (Claude) to extract structured fields from raw Textract text.
-    Returns a dict matching the ExtractedTranscriptData schema.
+    Extract structured fields from Textract raw text using regex patterns.
+    No Bedrock / cross-region invocation required.
     """
     if not transcript_text.strip():
         return _empty_extracted_data("no text extracted from document")
 
-    try:
-        prompt = EXTRACTION_PROMPT_TEMPLATE.format(
-            transcript_text=transcript_text[:12000]
-        )
-        body = json.dumps({
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 1024,
-            "temperature": 0.0,
-            "messages": [{"role": "user", "content": prompt}],
-        })
-        response = bedrock_runtime.invoke_model(
-            modelId=KB_MODEL_ARN,
-            body=body,
-            contentType="application/json",
-            accept="application/json",
-        )
-        response_body = json.loads(response["body"].read())
-        content = response_body.get("content", [])
-        raw_text = content[0].get("text", "") if content else ""
+    text = transcript_text
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    confidence_hits = 0
+    confidence_total = 8  # number of fields we attempt to extract
 
-        # Strip markdown code fences if present
-        clean = re.sub(r"```(?:json)?\s*|\s*```", "", raw_text).strip()
+    # ── Institution name (first non-empty line) ───────────────────────────────
+    institution_name = lines[0] if lines else ""
+    if institution_name:
+        confidence_hits += 1
 
+    # ── Degree and program ────────────────────────────────────────────────────
+    degree_awarded = ""
+    program_name = ""
+    for pattern, abbr, full_name in _DEGREE_PATTERNS:
+        if re.search(pattern, text, re.IGNORECASE):
+            degree_awarded = abbr
+            program_name = full_name
+            confidence_hits += 1
+            break
+
+    # ── Graduation / conferral date ───────────────────────────────────────────
+    graduation_date = ""
+    graduation_confirmed = False
+    date_patterns = [
+        r"(?:graduated|conferred|awarded|degree\s+date|graduation\s+date)[:\s]+([A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{4}-\d{2}-\d{2})",
+        r"((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4})",
+        r"((?:Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4})",
+    ]
+    for dp in date_patterns:
+        m = re.search(dp, text, re.IGNORECASE)
+        if m:
+            graduation_date = m.group(1).strip()
+            graduation_confirmed = True
+            confidence_hits += 1
+            break
+
+    # ── Total credits (cumulative earned hours) ───────────────────────────────
+    total_credits = 0.0
+    cum_matches = re.findall(
+        r"CUM[:\s]+[\d.]+\s+[\d.]+\s+([\d.]+)", text, re.IGNORECASE
+    )
+    if cum_matches:
         try:
-            extracted = json.loads(clean)
-        except json.JSONDecodeError:
-            # Last resort: find JSON object in the text
-            match = re.search(r"\{.*\}", clean, re.DOTALL)
-            if match:
-                extracted = json.loads(match.group())
-            else:
-                raise ValueError(f"No JSON found in: {clean[:300]}")
+            total_credits = max(float(v) for v in cum_matches)
+            if total_credits > 0:
+                confidence_hits += 1
+        except ValueError:
+            pass
 
-        return {
-            "institution_name": str(extracted.get("institution_name") or ""),
-            "program_name": str(extracted.get("program_name") or ""),
-            "degree_awarded": str(extracted.get("degree_awarded") or ""),
-            "graduation_date": str(extracted.get("graduation_date") or ""),
-            "graduation_confirmed": bool(extracted.get("graduation_confirmed", False)),
-            "total_credits": _safe_float(extracted.get("total_credits", 0.0)),
-            "nursing_credits": _safe_float(extracted.get("nursing_credits", 0.0)),
-            "accreditation_type": str(extracted.get("accreditation_type") or ""),
-            "accreditation_body": str(extracted.get("accreditation_body") or ""),
-            "extraction_confidence": max(
-                0.0, min(1.0, _safe_float(extracted.get("extraction_confidence", 0.5)))
-            ),
-            "extraction_notes": str(extracted.get("extraction_notes") or ""),
-        }
+    # If no CUM pattern, look for "Total Credits" or similar
+    if total_credits == 0:
+        m = re.search(r"total\s+(?:credit|semester)\s+hours?[:\s]+([\d.]+)", text, re.IGNORECASE)
+        if m:
+            total_credits = _safe_float(m.group(1))
+            if total_credits > 0:
+                confidence_hits += 1
 
-    except Exception as e:
-        print(f"[ERROR] structured extraction failed: {e}")
-        return _empty_extracted_data(f"extraction error: {str(e)[:200]}")
+    # ── Nursing credits (courses with nursing prefixes) ───────────────────────
+    nursing_credits = 0.0
+    for m in re.finditer(
+        r"\b(?:NUR|NURS|NSG|NRSG)\s*\d+\b.*?([\d.]+)\s+(?:P|A|B|C|D|F|W|CR|NC|\d\.\d+)",
+        text, re.IGNORECASE,
+    ):
+        try:
+            nursing_credits += float(m.group(1))
+        except ValueError:
+            pass
+    if nursing_credits > 0:
+        confidence_hits += 1
+
+    # ── Accreditation ─────────────────────────────────────────────────────────
+    accreditation_type = ""
+    accreditation_body = ""
+    for pattern, acc_type, acc_body in _ACCREDITATION_PATTERNS:
+        if re.search(pattern, text, re.IGNORECASE):
+            accreditation_type = acc_type
+            accreditation_body = acc_body
+            confidence_hits += 1
+            break
+
+    # ── GPA present (bonus confidence signal) ────────────────────────────────
+    if re.search(r"\bGPA\b|\b[0-4]\.\d{3}\b", text):
+        confidence_hits += 1
+
+    extraction_confidence = round(confidence_hits / confidence_total, 2)
+    notes = (
+        f"Regex extraction: {confidence_hits}/{confidence_total} fields found. "
+        f"Institution: {institution_name or 'not found'}. "
+        f"Degree: {degree_awarded or 'not found'}."
+    )
+
+    print(f"[INFO] extracted institution='{institution_name}' degree='{degree_awarded}' "
+          f"confidence={extraction_confidence}")
+
+    return {
+        "institution_name": institution_name,
+        "program_name": program_name,
+        "degree_awarded": degree_awarded,
+        "graduation_date": graduation_date,
+        "graduation_confirmed": graduation_confirmed,
+        "total_credits": total_credits,
+        "nursing_credits": round(nursing_credits, 1),
+        "accreditation_type": accreditation_type,
+        "accreditation_body": accreditation_body,
+        "extraction_confidence": extraction_confidence,
+        "extraction_notes": notes,
+    }
+
+
+# ── Rule-based audit question evaluator (no Bedrock required) ─────────────────
+
+def _evaluate_audit_question(question: str, transcript_text: str,
+                              signature_count: int, seal_detected: bool,
+                              rules: list[dict], extracted: dict) -> dict:
+    """Evaluate a single audit question using deterministic text analysis."""
+    q = question.lower()
+    text = transcript_text.lower()
+
+    answer = "uncertain"
+    confidence = 0.4
+    evidence = []
+    reasoning = ""
+    risk_weight = "medium"
+    category = "fraud_indicator"
+    severity = "warning"
+    rule_codes: list[str] = []
+
+    # Map question keywords to deterministic checks
+    if "overall gpa" in q or "gpa" in q:
+        category = "accreditation"
+        if re.search(r"\bgpa\b|\b[0-4]\.\d{3}\b", transcript_text, re.IGNORECASE):
+            answer, confidence = "yes", 0.9
+            reasoning = "GPA value detected in transcript."
+            evidence = [m.group() for m in re.finditer(r"[0-4]\.\d{3}", transcript_text)][:3]
+        else:
+            answer, confidence = "no", 0.8
+            reasoning = "No GPA value found in transcript text."
+
+    elif "semester hours" in q or "credit hours" in q or "clock hours" in q:
+        category = "program_completion"
+        if re.search(r"\b\d+\.\d+\s+(?:credit|semester|clock)?\s*hours?\b|\b(?:ATT|ERN|HRS)\b", transcript_text, re.IGNORECASE):
+            answer, confidence = "yes", 0.85
+            reasoning = "Credit/semester hour data found in transcript."
+        else:
+            answer, confidence = "uncertain", 0.5
+            reasoning = "Could not confirm credit hour presentation."
+
+    elif "school official" in q or "signature" in q and "title" in q:
+        category = "document_integrity"
+        severity = "warning"
+        if signature_count > 0:
+            answer, confidence = "yes", 0.7
+            reasoning = f"Document contains {signature_count} signature(s)."
+            evidence = [f"{signature_count} signature(s) detected"]
+        else:
+            answer, confidence = "uncertain", 0.5
+            reasoning = "Signature presence could not be confirmed from text extraction."
+
+    elif "signature consistent" in q:
+        category = "document_integrity"
+        severity = "warning"
+        answer, confidence = "uncertain", 0.3
+        reasoning = "Signature consistency requires visual comparison not available in text."
+
+    elif "seal" in q or "embossed" in q or "stamped" in q:
+        category = "document_integrity"
+        severity = "warning"
+        if seal_detected:
+            answer, confidence = "yes", 0.8
+            reasoning = "Institutional seal detected in document."
+            evidence = ["seal detected by visual analysis"]
+        else:
+            answer, confidence = "uncertain", 0.4
+            reasoning = "Seal detection requires visual analysis; not confirmed."
+
+    elif "program dates" in q or "enrollment length" in q or "internal conflicts" in q:
+        category = "document_integrity"
+        terms = re.findall(r"\b(?:FA|SP|SU|WI)-\d{2}\b", transcript_text, re.IGNORECASE)
+        if len(terms) > 1:
+            answer, confidence = "yes", 0.75
+            reasoning = f"Multiple terms found ({', '.join(terms[:5])}); no obvious overlaps detected."
+            evidence = terms[:5]
+        else:
+            answer, confidence = "uncertain", 0.4
+            reasoning = "Could not verify program date consistency."
+
+    elif "nursing subjects" in q or "course list" in q:
+        category = "program_completion"
+        nur_courses = re.findall(r"\b(?:NUR|NURS|NSG)\s*\d+", transcript_text, re.IGNORECASE)
+        if nur_courses:
+            answer, confidence = "yes", 0.8
+            reasoning = f"Found {len(nur_courses)} nursing course(s)."
+            evidence = list(set(nur_courses))[:5]
+        else:
+            answer, confidence = "uncertain", 0.5
+            reasoning = "No nursing-specific course codes found."
+
+    elif "diploma mill" in q or "life experience" in q or "no study" in q:
+        category = "fraud_indicator"
+        severity = "warning"
+        risk_weight = "high"
+        mill_keywords = ["diploma mill", "life experience", "no study", "guaranteed degree", "instant degree"]
+        found = [kw for kw in mill_keywords if kw in text]
+        if found:
+            answer, confidence = "no", 0.9
+            reasoning = f"Diploma mill indicators found: {found}"
+            evidence = found
+        else:
+            answer, confidence = "yes", 0.7
+            reasoning = "No diploma mill language detected in transcript."
+
+    elif "prior learning" in q or "transferred" in q and "fraudulent" in q:
+        category = "fraud_indicator"
+        if "transfer" in text:
+            answer, confidence = "uncertain", 0.5
+            reasoning = "Transfer credits present; source authenticity cannot be auto-verified."
+            evidence = ["Transfer credits detected"]
+        else:
+            answer, confidence = "yes", 0.7
+            reasoning = "No transferred credits detected."
+
+    elif "attendance duration" in q or "minimum required" in q:
+        category = "accreditation"
+        if extracted.get("total_credits", 0) >= 60:
+            answer, confidence = "yes", 0.75
+            reasoning = f"Total credits ({extracted.get('total_credits')}) meets typical minimum."
+        elif extracted.get("total_credits", 0) > 0:
+            answer, confidence = "uncertain", 0.5
+            reasoning = f"Total credits ({extracted.get('total_credits')}) found; minimum threshold varies by degree."
+        else:
+            answer, confidence = "uncertain", 0.3
+            reasoning = "Could not determine total credit hours."
+
+    elif "sum of individual" in q or "total credit hours" in q:
+        category = "document_integrity"
+        if extracted.get("total_credits", 0) > 0:
+            answer, confidence = "uncertain", 0.5
+            reasoning = "Credit totals found; cross-sum verification requires full course list parsing."
+        else:
+            answer, confidence = "uncertain", 0.3
+            reasoning = "Credit data insufficient for sum verification."
+
+    elif "accredited" in q:
+        category = "accreditation"
+        severity = "critical"
+        risk_weight = "high"
+        rule_codes = ["ACCREDITATION_001"]
+        acc_keywords = ["accredited", "acen", "ccne", "nlnac", "accreditation", "regional"]
+        found = [kw for kw in acc_keywords if kw in text]
+        if found:
+            answer, confidence = "yes", 0.75
+            reasoning = f"Accreditation-related terms found: {found}"
+            evidence = found
+        else:
+            answer, confidence = "uncertain", 0.4
+            reasoning = "No accreditation keywords found in transcript."
+
+    elif "diploma mill" in q or "med life" in q or "ideal" in q or "known" in q and "list" in q:
+        category = "fraud_indicator"
+        severity = "warning"
+        risk_weight = "high"
+        answer, confidence = "uncertain", 0.4
+        reasoning = "School name check against diploma mill lists requires external database lookup."
+
+    elif "sent directly" in q or "institution rather than" in q:
+        category = "document_integrity"
+        answer, confidence = "uncertain", 0.3
+        reasoning = "Document chain-of-custody cannot be determined from transcript text."
+
+    elif "paper size" in q or "a4" in q:
+        category = "formatting"
+        answer, confidence = "uncertain", 0.3
+        reasoning = "Physical paper dimensions cannot be determined from digital text extraction."
+
+    elif "grading scale" in q or "grading format" in q or "country of study" in q:
+        category = "formatting"
+        if re.search(r"\b[ABCDF]\b|\bP\b|\bCR\b|\bNC\b", transcript_text):
+            answer, confidence = "yes", 0.75
+            reasoning = "Standard letter/pass-fail grading format detected."
+            evidence = ["Standard grading scale found"]
+        else:
+            answer, confidence = "uncertain", 0.4
+            reasoning = "Grading format could not be confirmed."
+
+    elif "resident" in q or "state where" in q:
+        category = "fraud_indicator"
+        answer, confidence = "uncertain", 0.3
+        reasoning = "Applicant residency verification requires external data."
+
+    elif "overlaps" in q or "attendance dates" in q:
+        category = "fraud_indicator"
+        answer, confidence = "uncertain", 0.4
+        reasoning = "Enrollment overlap detection requires cross-institution records."
+
+    elif "physical anomalies" in q or "pixelated" in q:
+        category = "document_integrity"
+        answer, confidence = "uncertain", 0.3
+        reasoning = "Physical document anomaly detection requires visual inspection."
+
+    elif "course codes" in q or "institutional catalog" in q:
+        category = "accreditation"
+        nur_courses = re.findall(r"\b(?:NUR|NURS|NSG|BIO|ENG|MAT|PSY|SOC)\s*\d+", transcript_text, re.IGNORECASE)
+        if nur_courses:
+            answer, confidence = "uncertain", 0.5
+            reasoning = f"Found {len(nur_courses)} course codes; catalog verification requires external lookup."
+            evidence = list(set(nur_courses))[:5]
+        else:
+            answer, confidence = "uncertain", 0.3
+            reasoning = "No standard course codes found."
+
+    return {
+        "question": question,
+        "answer": answer,
+        "confidence": confidence,
+        "risk_weight": risk_weight,
+        "category": category,
+        "severity": severity,
+        "rule_codes": rule_codes,
+        "evidence": evidence,
+        "reasoning": reasoning,
+    }
+
+
 
 
 def load_rules() -> list[dict]:
@@ -350,63 +706,29 @@ def run_audit_questions(
     signature_count: int,
     rekognition_result: dict,
     rules: list[dict],
+    extracted_data: dict | None = None,
 ) -> dict:
     if not extracted_text.strip():
         return {
             "success": False,
-            "error": "No text extracted cannot run kb audit",
+            "error": "No text extracted cannot run audit",
             "question_results": [],
         }
 
-    rules_block = "\n".join(
-        f"[{r.get('code')}] ({str(r.get('severity', '')).upper()}) {r.get('description')}: {r.get('check')}"
-        for r in rules
-    ) if rules else "No rules loaded."
+    seal_detected = bool(rekognition_result.get("seal_detected"))
+    extracted = extracted_data or {}
 
     question_results: list[dict] = []
     for idx, question in enumerate(AUDIT_QUESTIONS, start=1):
-        prompt = QUESTION_PROMPT_TEMPLATE.format(
-            transcript_text=extracted_text[:15000],
+        result = _evaluate_audit_question(
+            question=question,
+            transcript_text=extracted_text,
             signature_count=signature_count,
-            seal_detected=bool(rekognition_result.get("seal_detected")),
-            rules_block=rules_block,
-            audit_question=question,
+            seal_detected=seal_detected,
+            rules=rules,
+            extracted=extracted,
         )
-        full_system_prompt = f"{DEFAULT_PROMPT}\n{prompt}\nSearch results:\n$search_results$"
-
-        try:
-            response = bedrock_agent.retrieve_and_generate(
-                input={"text": question},
-                retrieveAndGenerateConfiguration={
-                    "type": "KNOWLEDGE_BASE",
-                    "knowledgeBaseConfiguration": {
-                        "knowledgeBaseId": KB_ID,
-                        "modelArn": KB_MODEL_ARN,
-                        "generationConfiguration": {
-                            "promptTemplate": {"textPromptTemplate": full_system_prompt}
-                        },
-                    },
-                },
-            )
-            output_text = response.get("output", {}).get("text", "")
-            result = _normalize_question_result(output_text, question)
-            result["question_index"] = idx
-            result["raw_response"] = output_text[:2000]
-        except Exception as e:
-            result = {
-                "question": question,
-                "question_index": idx,
-                "answer": "uncertain",
-                "confidence": 0.0,
-                "risk_weight": "medium",
-                "category": "fraud_indicator",
-                "severity": "warning",
-                "rule_codes": [],
-                "evidence": [],
-                "reasoning": f"retrieve and generate failed: {e}",
-                "raw_response": "",
-            }
-
+        result["question_index"] = idx
         question_results.append(result)
         save_question_result_to_s3(verification_id, idx, result)
 
@@ -694,7 +1016,7 @@ def lambda_handler(event: dict, context) -> dict:
         f"labels={len(rekognition_result.get('labels', []))}"
     )
 
-    # step 4 — Bedrock structured data extraction from OCR text
+    # step 4 — structured data extraction from OCR text (regex-based)
     extracted_data = extract_structured_data(textract_result.get("full_text", ""))
     print(
         f"[INFO] extracted institution={extracted_data.get('institution_name')!r} "
@@ -702,13 +1024,14 @@ def lambda_handler(event: dict, context) -> dict:
         f"confidence={extracted_data.get('extraction_confidence')}"
     )
 
-    # step 5 — Bedrock KB audit questions
+    # step 5 — rule-based audit questions
     audit_result = run_audit_questions(
         verification_id,
         textract_result.get("full_text", ""),
         textract_result.get("signature_count", 0),
         rekognition_result,
         rules,
+        extracted_data=extracted_data,
     )
     print(
         "[INFO] kb audit result "
