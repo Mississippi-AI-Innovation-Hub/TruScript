@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -706,6 +706,7 @@ export function TranscriptDetail() {
           const fraudScore = typeof s.fraud_score === 'number' ? Math.round((s.fraud_score as number) * 100) : null;
           const recommendation = s.ai_recommendation as string;
           const extracted = s.extracted_data as Record<string, unknown> | undefined;
+          const exNotes = typeof extracted?.extraction_notes === 'string' ? extracted.extraction_notes : '';
 
           const riskColor =
             riskLevel === 'LOW'    ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
@@ -741,25 +742,38 @@ export function TranscriptDetail() {
 
               {/* Extracted data */}
               {extracted && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Extracted Data</p>
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-gray-500 uppercase">Extracted Data</p>
+
+                  {/* Extraction error / notes */}
+                  {exNotes ? (
+                    <div className={`text-xs px-3 py-2 rounded-lg border ${
+                      exNotes.startsWith('extraction error')
+                        ? 'bg-red-50 border-red-200 text-red-700'
+                        : 'bg-gray-50 border-gray-200 text-gray-600'
+                    }`}>
+                      <span className="font-semibold">Note: </span>{exNotes}
+                    </div>
+                  ) : null}
+
                   <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                    {[
-                      { label: 'Institution', value: extracted.institution_name },
-                      { label: 'Program', value: extracted.program_name },
-                      { label: 'Degree', value: extracted.degree_awarded },
-                      { label: 'Graduation Date', value: extracted.graduation_date || '—' },
+                    {([
+                      { label: 'Institution', value: extracted.institution_name as string | undefined },
+                      { label: 'Program', value: extracted.program_name as string | undefined },
+                      { label: 'Degree', value: extracted.degree_awarded as string | undefined },
+                      { label: 'Graduation Date', value: (extracted.graduation_date as string | undefined) || '—' },
                       { label: 'Graduation Confirmed', value: extracted.graduation_confirmed ? 'Yes' : 'No' },
                       { label: 'Total Credits', value: extracted.total_credits ? `${extracted.total_credits} hrs` : '—' },
                       { label: 'Nursing Credits', value: extracted.nursing_credits ? `${extracted.nursing_credits} hrs` : '—' },
-                      { label: 'Accreditation', value: extracted.accreditation_type },
-                    ].map(({ label, value }) => value ? (
+                      { label: 'Accreditation', value: extracted.accreditation_type as string | undefined },
+                    ] as { label: string; value: string | undefined }[]).map(({ label, value }) => value ? (
                       <div key={label}>
                         <dt className="text-xs text-gray-400">{label}</dt>
-                        <dd className="font-medium text-gray-800">{String(value)}</dd>
+                        <dd className="font-medium text-gray-800">{value}</dd>
                       </div>
                     ) : null)}
                   </dl>
+
                 </div>
               )}
             </div>
