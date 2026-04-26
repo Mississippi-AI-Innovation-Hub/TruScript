@@ -354,12 +354,56 @@ def extract_structured_data(transcript_text: str) -> dict:
 
 
 def run_textract(s3_key: str) -> dict:
+    """
+    Textract:
+    - Images: synchronous AnalyzeDocument
+    - PDFs: asynchronous StartDocumentAnalysis + GetDocumentAnalysis polling
+    """
+    is_pdf = s3_key.lower().endswith(".pdf")
     try:
-        resp = textract.analyze_document(
-            Document={"S3Object": {"Bucket": DOCUMENTS_BUCKET, "Name": s3_key}},
-            FeatureTypes=["SIGNATURES", "LAYOUT"],
-        )
-        blocks = resp.get("Blocks", [])
+        if not is_pdf:
+            resp = textract.analyze_document(
+                Document={"S3Object": {"Bucket": DOCUMENTS_BUCKET, "Name": s3_key}},
+                FeatureTypes=["SIGNATURES", "LAYOUT"],
+            )
+            blocks = resp.get("Blocks", [])
+        else:
+            start = textract.start_document_analysis(
+                DocumentLocation={"S3Object": {"Bucket": DOCUMENTS_BUCKET, "Name": s3_key}},
+                FeatureTypes=["SIGNATURES", "LAYOUT"],
+            )
+            job_id = start["JobId"]
+            blocks: list[dict] = []
+            next_token: str | None = None
+            # Poll for completion (max ~5 minutes, backoff).
+            deadline = time.time() + 300
+            sleep_s = 1.0
+            while True:
+                if time.time() > deadline:
+                    raise TimeoutError(f"Textract job timed out (JobId={job_id})")
+                kwargs = {"JobId": job_id}
+                if next_token:
+                    kwargs["NextToken"] = next_token
+                resp = textract.get_document_analysis(**kwargs)
+                status = resp.get("JobStatus")
+                if status == "FAILED":
+                    raise RuntimeError(f"Textract job failed (JobId={job_id}): {resp.get('StatusMessage')}")
+                if status in ("IN_PROGRESS", "SUCCEEDED"):
+                    # Only collect blocks once succeeded.
+                    if status == "SUCCEEDED":
+                        blocks.extend(resp.get("Blocks", []) or [])
+                        next_token = resp.get("NextToken")
+                        if not next_token:
+                            break
+                    else:
+                        time.sleep(sleep_s)
+                        sleep_s = min(sleep_s * 1.5, 5.0)
+                        continue
+                else:
+                    raise RuntimeError(
+                        f"Textract job returned unexpected status '{status}' (JobId={job_id})"
+                    )
+
         lines = [b["Text"] for b in blocks if b.get("BlockType") == "LINE" and "Text" in b]
         words = [b["Text"] for b in blocks if b.get("BlockType") == "WORD" and "Text" in b]
         signatures = [
@@ -377,6 +421,7 @@ def run_textract(s3_key: str) -> dict:
             "word_count": len(words),
             "signature_count": len(signatures),
             "signature_details": signatures,
+            "is_pdf": is_pdf,
         }
     except Exception as e:
         print(f"[ERROR] textract failed: {e}")
@@ -388,10 +433,22 @@ def run_textract(s3_key: str) -> dict:
             "word_count": 0,
             "signature_count": 0,
             "signature_details": [],
+            "is_pdf": is_pdf,
         }
 
 
 def run_rekognition(s3_key: str) -> dict:
+    # Rekognition DetectLabels does not support PDF input directly.
+    if s3_key.lower().endswith(".pdf"):
+        return {
+            "success": True,
+            "skipped": True,
+            "reason": "rekognition skipped for pdf input",
+            "seal_detected": False,
+            "labels": [],
+            "custom_labels": None,
+        }
+
     result = {"success": False, "seal_detected": False, "labels": [], "custom_labels": None}
     try:
         label_resp = rekognition.detect_labels(
@@ -674,7 +731,10 @@ def build_verification_summary(
                 }
             )
 
-    if not rekognition_result.get("seal_detected"):
+    rekognition_skipped = bool(rekognition_result.get("skipped"))
+    seal_detected = bool(rekognition_result.get("seal_detected"))
+
+    if not rekognition_skipped and not seal_detected:
         flags.append(
             {
                 "flag_id": str(uuid.uuid4()),
@@ -703,7 +763,8 @@ def build_verification_summary(
 
     valid_yes_no = yes_count + no_count
     qa_risk_score = (no_count / valid_yes_no) if valid_yes_no > 0 else 0.5
-    seal_penalty = 0.1 if not rekognition_result.get("seal_detected") else 0.0
+    # Apply seal penalty only if Rekognition actually ran (not skipped for PDFs).
+    seal_penalty = 0.1 if (not rekognition_skipped and not seal_detected) else 0.0
     fraud_score = min(1.0, max(0.0, qa_risk_score + seal_penalty))
 
     fraud_claim = str(fraud_summary.get("fraud_claim", "uncertain")).lower()
