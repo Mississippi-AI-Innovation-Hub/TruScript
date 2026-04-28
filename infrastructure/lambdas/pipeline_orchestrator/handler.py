@@ -31,10 +31,28 @@ def _is_region_deny(exc: Exception) -> bool:
     return any(kw in msg for kw in _REGION_DENY_ERRORS)
 
 
+_JSON_PROMPT_TEMPLATE = (
+    "You are a nursing transcript fraud reviewer.\n\n"
+    "Retrieved reference knowledge:\n$search_results$\n\n"
+    "IMPORTANT: You MUST respond with ONLY a single valid JSON object — no prose, "
+    "no explanation, no markdown, nothing outside the JSON.\n\n"
+    "Required format (pick one):\n"
+    "{\"claim\": \"yes\", \"reasoning\": \"one brief sentence\"}\n"
+    "{\"claim\": \"no\", \"reasoning\": \"one brief sentence\"}\n"
+    "{\"claim\": \"uncertain\", \"reasoning\": \"one brief sentence\"}\n\n"
+    "Rules:\n"
+    "  claim=yes   → the audit check passes / condition IS met\n"
+    "  claim=no    → the audit check fails / condition is NOT met\n"
+    "  claim=uncertain → not enough information to decide\n\n"
+    "Do NOT include any text before or after the JSON object."
+)
+
+
 def _retrieve_and_generate_with_retry(question: str, kb_id: str, model_arn: str,
-                                       system_prompt: str, max_attempts: int = 5) -> dict:
-    """retrieve_and_generate with retry on SCP/region-routing denials."""
+                                       max_attempts: int = 3) -> dict:
+    """retrieve_and_generate with Nova Pro, forcing JSON output via generationConfiguration."""
     last_exc: Exception = RuntimeError("no attempts made")
+
     for attempt in range(1, max_attempts + 1):
         try:
             return bedrock_agent.retrieve_and_generate(
@@ -45,7 +63,9 @@ def _retrieve_and_generate_with_retry(question: str, kb_id: str, model_arn: str,
                         "knowledgeBaseId": kb_id,
                         "modelArn": model_arn,
                         "generationConfiguration": {
-                            "promptTemplate": {"textPromptTemplate": system_prompt}
+                            "promptTemplate": {
+                                "textPromptTemplate": _JSON_PROMPT_TEMPLATE,
+                            }
                         },
                     },
                 },
@@ -188,12 +208,87 @@ def _extract_first_json_object(raw_text: str) -> dict | None:
     return None
 
 
+def _infer_claim_from_natural_language(text: str) -> tuple[str, str]:
+    """
+    Fallback: infer yes/no/uncertain from Nova Pro natural language output
+    when the model ignores the JSON instruction.
+    """
+    tl = text.lower()
+    reasoning = text[:300].strip()
+
+    # Cannot-determine patterns → uncertain
+    uncertain_signals = [
+        "cannot find sufficient information",
+        "cannot determine",
+        "does not provide",
+        "not provide specific",
+        "no information",
+        "insufficient information",
+        "unable to determine",
+        "not explicitly",
+        "search results do not",
+        "results do not contain",
+        "results do not provide",
+        "model cannot find",
+    ]
+    # Positive signals (check passes)
+    yes_signals = [
+        r"\bdoes display\b",
+        r"\bdoes show\b",
+        r"\bdoes include\b",
+        r"\bdoes exclude\b",
+        r"\bdoes avoid\b",
+        r"\bdoes match\b",
+        r"\bis accredited\b",
+        r"\bare accredited\b",
+        r"\bappears to have been sent\b",
+        r"\bsum.*match\b",
+        r"\bdo match\b",
+        r"\bis present\b",
+        r"\bare present\b",
+        r"\bdoes meet\b",
+    ]
+    # Negative signals (check fails)
+    no_signals = [
+        r"\bdoes not display\b",
+        r"\bdoes not include\b",
+        r"\bis not accredited\b",
+        r"\bnot accredited\b",
+        r"\bno seal\b",
+        r"\bno signature\b",
+        r"\bdoes not show\b",
+    ]
+
+    # Check first 300 chars for dominant signal
+    excerpt = tl[:300]
+
+    for pat in no_signals:
+        if re.search(pat, excerpt):
+            return "no", reasoning
+
+    for pat in yes_signals:
+        if re.search(pat, excerpt):
+            return "yes", reasoning
+
+    if any(sig in tl for sig in uncertain_signals):
+        return "uncertain", reasoning
+
+    # Last resort: check overall sentiment of first sentence
+    first_sentence = re.split(r"[.!?]", text)[0].lower() if text else ""
+    if re.search(r"\bdoes\b|\bis\b|\bare\b|\bhas\b|\bhave\b", first_sentence):
+        if not re.search(r"\bnot\b|\bno\b|\bcannot\b|\bunable\b", first_sentence):
+            return "yes", reasoning
+
+    return "uncertain", reasoning
+
+
 def _parse_claim_reasoning(raw_text: str) -> tuple[str, str]:
     """
     Parse model output into (answer, reasoning).
     Supports:
     1) JSON: {"claim":"Yes/No", "reasoning":"..."}
     2) free text: 'claim: Yes; reasoning: ...'
+    3) Nova Pro natural language (pattern-based fallback)
     """
     parsed = _extract_first_json_object(raw_text)
     if parsed is not None:
@@ -202,8 +297,12 @@ def _parse_claim_reasoning(raw_text: str) -> tuple[str, str]:
     else:
         claim_match = re.search(r"claim\s*:\s*(yes|no|uncertain|true|false)", raw_text, re.IGNORECASE)
         reasoning_match = re.search(r"reasoning\s*:\s*(.+)$", raw_text, re.IGNORECASE | re.DOTALL)
-        claim = (claim_match.group(1).strip().lower() if claim_match else "uncertain")
-        reasoning = (reasoning_match.group(1).strip() if reasoning_match else raw_text.strip())
+        if claim_match:
+            claim = claim_match.group(1).strip().lower()
+            reasoning = (reasoning_match.group(1).strip() if reasoning_match else raw_text.strip())
+        else:
+            # Nova Pro natural language fallback
+            return _infer_claim_from_natural_language(raw_text)
 
     if claim in {"yes", "y", "true"}:
         answer = "yes"
@@ -523,40 +622,31 @@ def run_audit_questions(
     question_results: list[dict] = []
     
     for idx, question in enumerate(AUDIT_QUESTIONS, start=1):
-        # 1. CONSTRUCT THE EXACT FINE-TUNING PROMPT FORMAT
-        prompt_body = QUESTION_PROMPT_TEMPLATE.format(
-            transcript_text=extracted_text,
-            signature_count=signature_count,
-            seal_detected="Yes" if seal_detected else "No",
-            audit_question=question,
+        # Embed transcript context in input.text — generationConfiguration forces JSON format
+        audit_question_input = (
+            f"Transcript excerpt:\n{extracted_text[:1500]}\n\n"
+            f"Signatures detected: {signature_count}. "
+            f"Seal detected: {'Yes' if seal_detected else 'No'}.\n\n"
+            f"Audit question: {question}"
         )
-        
-        # Match exact format from fine-tune training data
-        full_prompt = f"User: {prompt_body.strip()}\n\nAssistant:"
 
         try:
-            # 2. CALL BEDROCK
+            # Call Bedrock RetrieveAndGenerate (JSON output enforced by generationConfiguration)
             response = _retrieve_and_generate_with_retry(
-                question=question,
+                question=audit_question_input,
                 kb_id=KB_ID,
                 model_arn=KB_MODEL_ARN,
-                system_prompt=full_prompt
             )
-            
-            raw_output = response.get("output", {}).get("text", "")
-            
-            # 3. Robust parse (JSON/fenced JSON/text fallback)
-            answer, reasoning = _parse_claim_reasoning(raw_output)
-            parsing_failed = False
-            confidence = 0.8 if answer in {"yes", "no"} else 0.4
-            if answer == "uncertain":
-                parsing_failed = True
-                answer = "parsing_failed"
-                confidence = None
-                reasoning = f"Parsing failed: {raw_output[:200]}"
-                print(f"[WARN] Parsing failed for question {idx}. raw={raw_output[:240]}")
 
-            # 4. STORE RESULT IN EXPECTED FORMAT
+            raw_output = response.get("output", {}).get("text", "")
+
+            # Parse — JSON first, then natural language fallback
+            answer, reasoning = _parse_claim_reasoning(raw_output)
+            # uncertain is a valid answer (not a parse failure)
+            parsing_failed = False
+            confidence = 0.8 if answer in {"yes", "no"} else 0.5
+            print(f"[INFO] Q{idx}: {answer} — {reasoning[:80]}")
+
             result = {
                 "question_index": idx,
                 "question": question,
@@ -566,14 +656,14 @@ def run_audit_questions(
                 "confidence": confidence,
                 "parsing_failed": parsing_failed,
             }
-            
+
         except Exception as e:
             print(f"[ERROR] Bedrock call failed for question {idx}: {e}")
             result = {
                 "question_index": idx,
                 "question": question,
                 "answer": "parsing_failed",
-                "reasoning": f"Parsing failed: inference error - {str(e)}",
+                "reasoning": f"Inference error: {str(e)[:150]}",
                 "raw_response": "",
                 "confidence": None,
                 "parsing_failed": True,
@@ -625,40 +715,36 @@ def run_fraud_summary(
     
     qa_results = "\n".join(qa_formatted)
     
-    # Construct the summary prompt
-    prompt_body = SUMMARY_PROMPT_TEMPLATE.format(
-        transcript_text=extracted_text,
-        signature_count=signature_count,
-        seal_detected="Yes" if seal_detected else "No",
-        qa_results=qa_results,
+    # Embed all context in the question input — Nova Pro receives this + KB retrieval
+    fraud_question_input = (
+        f"You are a nursing transcript fraud analyst.\n\n"
+        f"Audit Q&A Summary:\n{qa_results[:2500]}\n\n"
+        f"Signatures detected: {signature_count}. "
+        f"Seal detected: {'Yes' if seal_detected else 'No'}.\n\n"
+        f"Passed checks: {sum(1 for q in question_results if q.get('answer') == 'yes')}. "
+        f"Failed checks: {sum(1 for q in question_results if q.get('answer') == 'no')}.\n\n"
+        "Based on the audit results and retrieved reference data, is this nursing transcript fraudulent?\n"
+        "Respond ONLY in JSON: {{\"claim\": \"yes|no|uncertain\", \"reasoning\": \"one line\"}}"
     )
-    
-    full_prompt = f"User: {prompt_body.strip()}\n\nAssistant:"
-    
+
     try:
-        # Call Bedrock for final fraud assessment
         response = _retrieve_and_generate_with_retry(
-            question="Is this transcript fraudulent?",
+            question=fraud_question_input,
             kb_id=KB_ID,
             model_arn=KB_MODEL_ARN,
-            system_prompt=full_prompt
         )
-        
+
         raw_output = response.get("output", {}).get("text", "")
-        
-        # Parse response robustly
         fraud_answer, fraud_reasoning = _parse_claim_reasoning(raw_output)
-        fraud_claim = fraud_answer
-        print(f"[INFO] Fraud summary: {fraud_claim} - {fraud_reasoning}")
+        print(f"[INFO] Fraud summary (Bedrock): {fraud_answer} - {fraud_reasoning[:100]}")
 
         result = {
             "success": True,
-            "fraud_claim": fraud_claim,
+            "fraud_claim": fraud_answer,
             "fraud_reasoning": fraud_reasoning,
             "raw_response": raw_output,
         }
-        
-        # Save fraud summary to S3
+
         try:
             s3.put_object(
                 Bucket=ML_DATA_BUCKET,
@@ -668,16 +754,26 @@ def run_fraud_summary(
             )
         except Exception as e:
             print(f"[WARN] Could not save fraud summary to S3: {e}")
-            
+
         return result
-        
+
     except Exception as e:
         print(f"[ERROR] Fraud summary Bedrock call failed: {e}")
+        # Fallback: tally-based assessment from audit results
+        yes_c = sum(1 for q in question_results if q.get("answer") == "yes")
+        no_c  = sum(1 for q in question_results if q.get("answer") == "no")
+        unc_c = len(question_results) - yes_c - no_c
+        if no_c >= 3:
+            claim, reason = "yes", f"{no_c} audit checks failed — likely fraudulent"
+        elif no_c == 0 and yes_c >= len(question_results) * 0.5:
+            claim, reason = "no", f"{yes_c}/{len(question_results)} checks passed"
+        else:
+            claim, reason = "uncertain", f"{yes_c} passed, {no_c} failed, {unc_c} uncertain"
         return {
             "success": False,
             "error": str(e),
-            "fraud_claim": "uncertain", 
-            "fraud_reasoning": f"Summary inference failed: {str(e)}",
+            "fraud_claim": claim,
+            "fraud_reasoning": reason,
             "raw_response": "",
         }
 
