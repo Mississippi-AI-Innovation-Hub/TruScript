@@ -11,6 +11,8 @@ import {
   User,
   Trash2,
   AlertTriangle,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import { transcriptsApi, authApi } from '../api';
 import type { TranscriptResponse, UserResponse } from '../types';
@@ -91,6 +93,111 @@ function ConfirmDeleteModal({ count, onConfirm, onCancel, isDeleting }: ConfirmD
             {isDeleting ? 'Deleting…' : `Delete ${count === 1 ? '' : count + ' '}transcript${count === 1 ? '' : 's'}`}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Pagination component ──────────────────────────────────────────────────────
+function buildPageRange(current: number, total: number): (number | '…')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i);
+  const pages: (number | '…')[] = [];
+  const addPage = (p: number) => { if (!pages.includes(p)) pages.push(p); };
+  addPage(0);
+  addPage(total - 1);
+  for (let p = current - 1; p <= current + 1; p++) {
+    if (p > 0 && p < total - 1) addPage(p);
+  }
+  const sorted = (pages.filter((p) => p !== '…') as number[]).sort((a, b) => a - b);
+  const result: (number | '…')[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && sorted[i] - sorted[i - 1] > 1) result.push('…');
+    result.push(sorted[i]);
+  }
+  return result;
+}
+
+interface PaginationProps {
+  page: number;
+  totalPages: number;
+  total: number;
+  isFetching: boolean;
+  onPage: (p: number) => void;
+}
+
+function Pagination({ page, totalPages, total, isFetching, onPage }: PaginationProps) {
+  if (totalPages <= 1) return null;
+  const pageRange = buildPageRange(page, totalPages);
+  const start = page * PAGE_SIZE + 1;
+  const end = Math.min((page + 1) * PAGE_SIZE, total);
+
+  return (
+    <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
+      <p className="text-sm text-gray-500">
+        Showing <span className="font-medium text-gray-700">{start}–{end}</span> of{' '}
+        <span className="font-medium text-gray-700">{total}</span> verifications
+      </p>
+
+      <div className="flex items-center gap-1">
+        {/* First */}
+        <button
+          disabled={page === 0}
+          onClick={() => onPage(0)}
+          title="First page"
+          className="p-1.5 rounded text-gray-400 hover:text-brand-600 hover:bg-brand-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronsLeft size={15} />
+        </button>
+
+        {/* Prev */}
+        <button
+          disabled={page === 0}
+          onClick={() => onPage(page - 1)}
+          title="Previous page"
+          className="p-1.5 rounded text-gray-400 hover:text-brand-600 hover:bg-brand-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronLeft size={15} />
+        </button>
+
+        {/* Page numbers */}
+        {pageRange.map((p, i) =>
+          p === '…' ? (
+            <span key={`ellipsis-${i}`} className="px-1 text-gray-400 text-sm select-none">…</span>
+          ) : (
+            <button
+              key={p}
+              disabled={isFetching}
+              onClick={() => onPage(p as number)}
+              className={`min-w-[32px] h-8 px-2 rounded text-sm font-medium transition-colors ${
+                p === page
+                  ? 'bg-brand-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-brand-50 hover:text-brand-700'
+              }`}
+            >
+              {(p as number) + 1}
+            </button>
+          )
+        )}
+
+        {/* Next */}
+        <button
+          disabled={page >= totalPages - 1 || isFetching}
+          onClick={() => onPage(page + 1)}
+          title="Next page"
+          className="p-1.5 rounded text-gray-400 hover:text-brand-600 hover:bg-brand-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronRight size={15} />
+        </button>
+
+        {/* Last */}
+        <button
+          disabled={page >= totalPages - 1}
+          onClick={() => onPage(totalPages - 1)}
+          title="Last page"
+          className="p-1.5 rounded text-gray-400 hover:text-brand-600 hover:bg-brand-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronsRight size={15} />
+        </button>
       </div>
     </div>
   );
@@ -392,32 +499,17 @@ export function TranscriptList() {
               </table>
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && !search && (
-              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
-                <p className="text-sm text-gray-500">
-                  Page {page + 1} of {totalPages} &nbsp;·&nbsp; {data?.total} total
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    disabled={page === 0}
-                    onClick={() => setPage((p) => p - 1)}
-                    className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1 disabled:opacity-40"
-                  >
-                    <ChevronLeft size={14} /> Prev
-                  </button>
-                  <button
-                    disabled={page >= totalPages - 1 || isFetching}
-                    onClick={() => setPage((p) => p + 1)}
-                    className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1 disabled:opacity-40"
-                  >
-                    Next <ChevronRight size={14} />
-                  </button>
-                </div>
-              </div>
-            )}
           </>
         )}
+
+        {/* Pagination always outside the empty-state conditional */}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={data?.total ?? 0}
+          isFetching={isFetching}
+          onPage={setPage}
+        />
       </div>
     </div>
   );

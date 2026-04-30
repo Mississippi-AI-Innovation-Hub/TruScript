@@ -26,6 +26,11 @@ class TranscriptRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    async def count_all(self) -> int:
+        """Return the total number of transcript verifications."""
+        raise NotImplementedError
+
+    @abstractmethod
     async def list_all(
         self,
         skip: int = 0,

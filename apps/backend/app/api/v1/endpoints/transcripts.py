@@ -154,10 +154,10 @@ async def list_transcripts(
     limit: int = Query(default=20, ge=1, le=100, description="Max records to return"),
     repo: SQLAlchemyTranscriptRepository = Depends(get_repo),
 ) -> TranscriptListResponse:
-    results = await ListTranscriptsUseCase(repo).execute(skip=skip, limit=limit)
+    results, total = await ListTranscriptsUseCase(repo).execute(skip=skip, limit=limit)
     return TranscriptListResponse(
         items=[_to_http_response(r) for r in results],
-        total=len(results),
+        total=total,
         skip=skip,
         limit=limit,
     )
