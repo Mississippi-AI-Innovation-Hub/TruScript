@@ -397,6 +397,32 @@ async def delete_transcript(
     return {"deleted": True, "verification_id": verification_id}
 
 
+class BulkDeleteRequest(BaseModel):
+    verification_ids: list[str] = Field(..., min_length=1, max_length=100)
+
+
+@router.delete(
+    "",
+    summary="Bulk delete multiple transcript verification records",
+    dependencies=[Depends(require_role("msbn-admin"))],
+)
+async def bulk_delete_transcripts(
+    body: BulkDeleteRequest,
+    current_user: CurrentUser,
+    repo: SQLAlchemyTranscriptRepository = Depends(get_repo),
+) -> dict:
+    deleted: list[str] = []
+    not_found: list[str] = []
+    use_case = DeleteTranscriptUseCase(repo)
+    for vid in body.verification_ids:
+        try:
+            await use_case.execute(vid)
+            deleted.append(vid)
+        except TranscriptNotFoundError:
+            not_found.append(vid)
+    return {"deleted": deleted, "not_found": not_found, "count": len(deleted)}
+
+
 @router.get(
     "/{verification_id}/documents/{document_id}/preview",
     summary="Stream a transcript document file for preview",

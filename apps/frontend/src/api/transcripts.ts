@@ -36,6 +36,14 @@ export const transcriptsApi = {
       .delete<Record<string, unknown>>(`/api/v1/transcripts/${verificationId}`)
       .then((r) => r.data),
 
+  bulkDelete: (verificationIds: string[]) =>
+    apiClient
+      .delete<{ deleted: string[]; not_found: string[]; count: number }>(
+        '/api/v1/transcripts',
+        { data: { verification_ids: verificationIds } }
+      )
+      .then((r) => r.data),
+
   // ─── Flag Reviews ─────────────────────────────────────────────────────────
 
   reviewFlag: (verificationId: string, flagId: string, data: FlagReviewRequest) =>
