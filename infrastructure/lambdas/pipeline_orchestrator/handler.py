@@ -24,11 +24,18 @@ bedrock_agent = boto3.client("bedrock-agent-runtime", region_name=_region)
 s3 = boto3.client("s3", region_name=_region)
 
 _REGION_DENY_ERRORS = ("us-east-2", "us-west-2", "AccessDeniedException", "explicit deny")
+_THROTTLE_ERRORS = ("ThrottlingException", "TooManyRequestsException", "ServiceUnavailableException", "ModelNotReadyException")
 
 def _is_region_deny(exc: Exception) -> bool:
-    """Return True if the error is a cross-region SCP block we should retry."""
+    """Return True if the error is a cross-region SCP block."""
     msg = str(exc)
     return any(kw in msg for kw in _REGION_DENY_ERRORS)
+
+def _is_throttle(exc: Exception) -> bool:
+    """Return True if the error is a transient throttle / rate-limit."""
+    code = getattr(exc, "response", {}).get("Error", {}).get("Code", "")
+    msg = str(exc)
+    return code in _THROTTLE_ERRORS or any(kw in msg for kw in _THROTTLE_ERRORS)
 
 
 _JSON_PROMPT_TEMPLATE = (
@@ -49,8 +56,12 @@ _JSON_PROMPT_TEMPLATE = (
 
 
 def _retrieve_and_generate_with_retry(question: str, kb_id: str, model_arn: str,
-                                       max_attempts: int = 3) -> dict:
-    """retrieve_and_generate with Nova Pro, forcing JSON output via generationConfiguration."""
+                                       max_attempts: int = 6) -> dict:
+    """
+    retrieve_and_generate with Nova Pro.
+    Retries on throttling (exponential backoff) and region-deny errors.
+    max_attempts=6 gives up to ~63s of total backoff on sustained throttle.
+    """
     last_exc: Exception = RuntimeError("no attempts made")
 
     for attempt in range(1, max_attempts + 1):
@@ -72,9 +83,13 @@ def _retrieve_and_generate_with_retry(question: str, kb_id: str, model_arn: str,
             )
         except ClientError as exc:
             last_exc = exc
-            if _is_region_deny(exc):
-                print(f"[WARN] RetrieveAndGenerate routed to blocked region (attempt {attempt}), retrying…")
-                time.sleep(0.5 * attempt)
+            if _is_throttle(exc):
+                backoff = min(2 ** attempt, 30)  # 2, 4, 8, 16, 30, 30 …
+                print(f"[WARN] Bedrock throttled (attempt {attempt}/{max_attempts}), backing off {backoff}s…")
+                time.sleep(backoff)
+            elif _is_region_deny(exc):
+                print(f"[WARN] Region deny (attempt {attempt}), retrying…")
+                time.sleep(1 * attempt)
             else:
                 raise
     raise last_exc
@@ -671,6 +686,9 @@ def run_audit_questions(
 
         question_results.append(result)
         save_question_result_to_s3(verification_id, idx, result)
+        # Small delay between questions — prevents burst throttling when
+        # multiple Lambdas run concurrently (4-5 transcripts at once).
+        time.sleep(0.8)
 
     # Save final aggregated results
     try:
