@@ -1,9 +1,22 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { PlusCircle, ChevronLeft, ChevronRight, ArrowRight, Search, FileText, User } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  PlusCircle,
+  ChevronLeft,
+  ChevronRight,
+  ArrowRight,
+  Search,
+  FileText,
+  User,
+  Trash2,
+  AlertTriangle,
+  ChevronsLeft,
+  ChevronsRight,
+} from 'lucide-react';
 import { transcriptsApi, authApi } from '../api';
 import type { TranscriptResponse, UserResponse } from '../types';
+import { useAuth } from '../context/AuthContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { PageHeader } from '../components/PageHeader';
 import { Spinner } from '../components/Spinner';
@@ -18,14 +31,12 @@ function formatDate(iso: string) {
   });
 }
 
-/** Pull the original filename from the documents array. */
 function getFilename(t: TranscriptResponse): string {
   const doc = t.documents?.[0] as Record<string, unknown> | undefined;
   const name = doc?.original_filename as string | undefined;
   return name || '—';
 }
 
-/** Build id → display name map from staff list. */
 function buildStaffMap(staff: UserResponse[]): Map<string, string> {
   const map = new Map<string, string>();
   for (const s of staff) {
@@ -38,9 +49,173 @@ function buildStaffMap(staff: UserResponse[]): Map<string, string> {
   return map;
 }
 
+// ── Confirmation modal ────────────────────────────────────────────────────────
+interface ConfirmDeleteModalProps {
+  count: number;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isDeleting: boolean;
+}
+
+function ConfirmDeleteModal({ count, onConfirm, onCancel, isDeleting }: ConfirmDeleteModalProps) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0 bg-red-100 rounded-full p-2.5">
+            <AlertTriangle size={22} className="text-red-600" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-base font-semibold text-gray-900">
+              Delete {count === 1 ? 'transcript' : `${count} transcripts`}?
+            </h2>
+            <p className="mt-1.5 text-sm text-gray-500">
+              This will permanently remove{' '}
+              {count === 1 ? 'this transcript' : `these ${count} transcripts`} and all
+              associated documents, audit results, and flags. This action cannot be undone.
+            </p>
+          </div>
+        </div>
+        <div className="flex justify-end gap-3 mt-6">
+          <button
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="btn-secondary text-sm px-4 py-2"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-60"
+          >
+            {isDeleting ? <Spinner size={14} /> : <Trash2 size={14} />}
+            {isDeleting ? 'Deleting…' : `Delete ${count === 1 ? '' : count + ' '}transcript${count === 1 ? '' : 's'}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Pagination component ──────────────────────────────────────────────────────
+function buildPageRange(current: number, total: number): (number | '…')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i);
+  const pages: (number | '…')[] = [];
+  const addPage = (p: number) => { if (!pages.includes(p)) pages.push(p); };
+  addPage(0);
+  addPage(total - 1);
+  for (let p = current - 1; p <= current + 1; p++) {
+    if (p > 0 && p < total - 1) addPage(p);
+  }
+  const sorted = (pages.filter((p) => p !== '…') as number[]).sort((a, b) => a - b);
+  const result: (number | '…')[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && sorted[i] - sorted[i - 1] > 1) result.push('…');
+    result.push(sorted[i]);
+  }
+  return result;
+}
+
+interface PaginationProps {
+  page: number;
+  totalPages: number;
+  total: number;
+  isFetching: boolean;
+  onPage: (p: number) => void;
+}
+
+function Pagination({ page, totalPages, total, isFetching, onPage }: PaginationProps) {
+  if (totalPages <= 1) return null;
+  const pageRange = buildPageRange(page, totalPages);
+  const start = page * PAGE_SIZE + 1;
+  const end = Math.min((page + 1) * PAGE_SIZE, total);
+
+  return (
+    <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
+      <p className="text-sm text-gray-500">
+        Showing <span className="font-medium text-gray-700">{start}–{end}</span> of{' '}
+        <span className="font-medium text-gray-700">{total}</span> verifications
+      </p>
+
+      <div className="flex items-center gap-1">
+        {/* First */}
+        <button
+          disabled={page === 0}
+          onClick={() => onPage(0)}
+          title="First page"
+          className="p-1.5 rounded text-gray-400 hover:text-brand-600 hover:bg-brand-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronsLeft size={15} />
+        </button>
+
+        {/* Prev */}
+        <button
+          disabled={page === 0}
+          onClick={() => onPage(page - 1)}
+          title="Previous page"
+          className="p-1.5 rounded text-gray-400 hover:text-brand-600 hover:bg-brand-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronLeft size={15} />
+        </button>
+
+        {/* Page numbers */}
+        {pageRange.map((p, i) =>
+          p === '…' ? (
+            <span key={`ellipsis-${i}`} className="px-1 text-gray-400 text-sm select-none">…</span>
+          ) : (
+            <button
+              key={p}
+              disabled={isFetching}
+              onClick={() => onPage(p as number)}
+              className={`min-w-[32px] h-8 px-2 rounded text-sm font-medium transition-colors ${
+                p === page
+                  ? 'bg-brand-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-brand-50 hover:text-brand-700'
+              }`}
+            >
+              {(p as number) + 1}
+            </button>
+          )
+        )}
+
+        {/* Next */}
+        <button
+          disabled={page >= totalPages - 1 || isFetching}
+          onClick={() => onPage(page + 1)}
+          title="Next page"
+          className="p-1.5 rounded text-gray-400 hover:text-brand-600 hover:bg-brand-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronRight size={15} />
+        </button>
+
+        {/* Last */}
+        <button
+          disabled={page >= totalPages - 1}
+          onClick={() => onPage(totalPages - 1)}
+          title="Last page"
+          className="p-1.5 rounded text-gray-400 hover:text-brand-600 hover:bg-brand-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronsRight size={15} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 export function TranscriptList() {
+  const { isAdmin } = useAuth();
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
+
+  // Selection state
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  // Delete confirmation state
+  const [pendingDelete, setPendingDelete] = useState<string[] | null>(null); // null = closed
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['transcripts', page],
@@ -48,7 +223,6 @@ export function TranscriptList() {
     placeholderData: (prev) => prev,
   });
 
-  // Fetch staff for name resolution — stale 5 min, won't block the page
   const { data: staffList = [] } = useQuery({
     queryKey: ['staff-list'],
     queryFn: () => authApi.listStaff(),
@@ -56,7 +230,6 @@ export function TranscriptList() {
   });
 
   const staffMap = useMemo(() => buildStaffMap(staffList), [staffList]);
-
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
 
   const filtered = useMemo(() => {
@@ -77,8 +250,81 @@ export function TranscriptList() {
     });
   }, [data, search, staffMap]);
 
+  // ── Selection helpers ────────────────────────────────────────────────────
+  const allFilteredIds = filtered.map((t) => t.verification_id);
+  const allSelected =
+    allFilteredIds.length > 0 && allFilteredIds.every((id) => selected.has(id));
+  const someSelected = allFilteredIds.some((id) => selected.has(id));
+
+  function toggleAll() {
+    if (allSelected) {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        allFilteredIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        allFilteredIds.forEach((id) => next.add(id));
+        return next;
+      });
+    }
+  }
+
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  // ── Delete handlers ─────────────────────────────────────────────────────
+  function requestDelete(ids: string[]) {
+    setPendingDelete(ids);
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete || pendingDelete.length === 0) return;
+    setIsDeleting(true);
+    try {
+      if (pendingDelete.length === 1) {
+        await transcriptsApi.delete(pendingDelete[0]);
+      } else {
+        await transcriptsApi.bulkDelete(pendingDelete);
+      }
+      // Clear selection for deleted items
+      setSelected((prev) => {
+        const next = new Set(prev);
+        pendingDelete.forEach((id) => next.delete(id));
+        return next;
+      });
+      // Invalidate list cache
+      await queryClient.invalidateQueries({ queryKey: ['transcripts'] });
+    } catch (err) {
+      console.error('Delete failed:', err);
+    } finally {
+      setIsDeleting(false);
+      setPendingDelete(null);
+    }
+  }
+
+  const selectedOnPage = allFilteredIds.filter((id) => selected.has(id));
+
   return (
     <div className="p-8">
+      {/* Confirmation modal */}
+      {pendingDelete && (
+        <ConfirmDeleteModal
+          count={pendingDelete.length}
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+          isDeleting={isDeleting}
+        />
+      )}
+
       <PageHeader
         title="Transcript Verifications"
         subtitle="Review, manage, and track all nursing transcript verification records."
@@ -90,16 +336,28 @@ export function TranscriptList() {
         }
       />
 
-      {/* Search */}
-      <div className="relative mb-5 max-w-sm">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          className="input pl-9"
-          placeholder="Search by filename, status, or reviewer…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      {/* Toolbar — search + bulk delete */}
+      <div className="flex items-center gap-3 mb-5">
+        <div className="relative max-w-sm flex-1">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            className="input pl-9 w-full"
+            placeholder="Search by filename, status, or reviewer…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        {isAdmin && selectedOnPage.length > 0 && (
+          <button
+            onClick={() => requestDelete(selectedOnPage)}
+            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            <Trash2 size={15} />
+            Delete selected ({selectedOnPage.length})
+          </button>
+        )}
       </div>
 
       {/* Table card */}
@@ -119,6 +377,20 @@ export function TranscriptList() {
               <table className="min-w-full divide-y divide-gray-100">
                 <thead className="bg-brand-50">
                   <tr>
+                    {/* Select-all checkbox — admin only */}
+                    {isAdmin && (
+                      <th className="px-4 py-3 w-10">
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          ref={(el) => {
+                            if (el) el.indeterminate = someSelected && !allSelected;
+                          }}
+                          onChange={toggleAll}
+                          className="w-4 h-4 rounded border-gray-300 text-brand-600 cursor-pointer"
+                        />
+                      </th>
+                    )}
                     {['#', 'Transcript', 'Type', 'Status', 'Assigned Reviewer', 'Created', ''].map((h) => (
                       <th
                         key={h}
@@ -136,16 +408,31 @@ export function TranscriptList() {
                     const staffName = t.assigned_staff_id
                       ? staffMap.get(t.assigned_staff_id)
                       : null;
+                    const isChecked = selected.has(t.verification_id);
 
                     return (
-                      <tr key={t.verification_id} className="hover:bg-brand-50/40 transition-colors">
+                      <tr
+                        key={t.verification_id}
+                        className={`hover:bg-brand-50/40 transition-colors ${isAdmin && isChecked ? 'bg-red-50/40' : ''}`}
+                      >
+                        {/* Row checkbox — admin only */}
+                        {isAdmin && (
+                          <td className="px-4 py-4 w-10">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => toggleOne(t.verification_id)}
+                              className="w-4 h-4 rounded border-gray-300 text-brand-600 cursor-pointer"
+                            />
+                          </td>
+                        )}
 
-                        {/* # — sequential count */}
+                        {/* # */}
                         <td className="px-6 py-4 text-sm font-semibold text-gray-400 w-12">
                           #{globalIndex}
                         </td>
 
-                        {/* Transcript filename */}
+                        {/* Filename */}
                         <td className="px-6 py-4 max-w-[240px]">
                           <div className="flex items-center gap-2">
                             <FileText size={15} className="text-gray-400 shrink-0" />
@@ -168,7 +455,7 @@ export function TranscriptList() {
                           <StatusBadge status={t.status} />
                         </td>
 
-                        {/* Assigned reviewer — name, not ID */}
+                        {/* Assigned reviewer */}
                         <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">
                           {staffName ? (
                             <div className="flex items-center gap-1.5">
@@ -185,14 +472,25 @@ export function TranscriptList() {
                           {formatDate(t.created_at)}
                         </td>
 
-                        {/* View link */}
+                        {/* Actions: View + Delete (delete admin only) */}
                         <td className="px-6 py-4 text-right">
-                          <Link
-                            to={`/transcripts/${t.verification_id}`}
-                            className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-800"
-                          >
-                            View <ArrowRight size={13} />
-                          </Link>
+                          <div className="flex items-center justify-end gap-3">
+                            <Link
+                              to={`/transcripts/${t.verification_id}`}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-800"
+                            >
+                              View <ArrowRight size={13} />
+                            </Link>
+                            {isAdmin && (
+                              <button
+                                onClick={() => requestDelete([t.verification_id])}
+                                title="Delete transcript"
+                                className="p-1 text-gray-300 hover:text-red-500 transition-colors rounded"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -201,32 +499,17 @@ export function TranscriptList() {
               </table>
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && !search && (
-              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
-                <p className="text-sm text-gray-500">
-                  Page {page + 1} of {totalPages} &nbsp;·&nbsp; {data?.total} total
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    disabled={page === 0}
-                    onClick={() => setPage((p) => p - 1)}
-                    className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1 disabled:opacity-40"
-                  >
-                    <ChevronLeft size={14} /> Prev
-                  </button>
-                  <button
-                    disabled={page >= totalPages - 1 || isFetching}
-                    onClick={() => setPage((p) => p + 1)}
-                    className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1 disabled:opacity-40"
-                  >
-                    Next <ChevronRight size={14} />
-                  </button>
-                </div>
-              </div>
-            )}
           </>
         )}
+
+        {/* Pagination always outside the empty-state conditional */}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={data?.total ?? 0}
+          isFetching={isFetching}
+          onPage={setPage}
+        />
       </div>
     </div>
   );
