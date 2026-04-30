@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { transcriptsApi, authApi } from '../api';
 import type { TranscriptResponse, UserResponse } from '../types';
+import { useAuth } from '../context/AuthContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { PageHeader } from '../components/PageHeader';
 import { Spinner } from '../components/Spinner';
@@ -97,6 +98,7 @@ function ConfirmDeleteModal({ count, onConfirm, onCancel, isDeleting }: ConfirmD
 
 // ── Main component ────────────────────────────────────────────────────────────
 export function TranscriptList() {
+  const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
@@ -240,7 +242,7 @@ export function TranscriptList() {
           />
         </div>
 
-        {selectedOnPage.length > 0 && (
+        {isAdmin && selectedOnPage.length > 0 && (
           <button
             onClick={() => requestDelete(selectedOnPage)}
             className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
@@ -268,18 +270,20 @@ export function TranscriptList() {
               <table className="min-w-full divide-y divide-gray-100">
                 <thead className="bg-brand-50">
                   <tr>
-                    {/* Select-all checkbox */}
-                    <th className="px-4 py-3 w-10">
-                      <input
-                        type="checkbox"
-                        checked={allSelected}
-                        ref={(el) => {
-                          if (el) el.indeterminate = someSelected && !allSelected;
-                        }}
-                        onChange={toggleAll}
-                        className="w-4 h-4 rounded border-gray-300 text-brand-600 cursor-pointer"
-                      />
-                    </th>
+                    {/* Select-all checkbox — admin only */}
+                    {isAdmin && (
+                      <th className="px-4 py-3 w-10">
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          ref={(el) => {
+                            if (el) el.indeterminate = someSelected && !allSelected;
+                          }}
+                          onChange={toggleAll}
+                          className="w-4 h-4 rounded border-gray-300 text-brand-600 cursor-pointer"
+                        />
+                      </th>
+                    )}
                     {['#', 'Transcript', 'Type', 'Status', 'Assigned Reviewer', 'Created', ''].map((h) => (
                       <th
                         key={h}
@@ -302,17 +306,19 @@ export function TranscriptList() {
                     return (
                       <tr
                         key={t.verification_id}
-                        className={`hover:bg-brand-50/40 transition-colors ${isChecked ? 'bg-red-50/40' : ''}`}
+                        className={`hover:bg-brand-50/40 transition-colors ${isAdmin && isChecked ? 'bg-red-50/40' : ''}`}
                       >
-                        {/* Row checkbox */}
-                        <td className="px-4 py-4 w-10">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => toggleOne(t.verification_id)}
-                            className="w-4 h-4 rounded border-gray-300 text-brand-600 cursor-pointer"
-                          />
-                        </td>
+                        {/* Row checkbox — admin only */}
+                        {isAdmin && (
+                          <td className="px-4 py-4 w-10">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => toggleOne(t.verification_id)}
+                              className="w-4 h-4 rounded border-gray-300 text-brand-600 cursor-pointer"
+                            />
+                          </td>
+                        )}
 
                         {/* # */}
                         <td className="px-6 py-4 text-sm font-semibold text-gray-400 w-12">
@@ -359,7 +365,7 @@ export function TranscriptList() {
                           {formatDate(t.created_at)}
                         </td>
 
-                        {/* Actions: View + Delete */}
+                        {/* Actions: View + Delete (delete admin only) */}
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-3">
                             <Link
@@ -368,13 +374,15 @@ export function TranscriptList() {
                             >
                               View <ArrowRight size={13} />
                             </Link>
-                            <button
-                              onClick={() => requestDelete([t.verification_id])}
-                              title="Delete transcript"
-                              className="p-1 text-gray-300 hover:text-red-500 transition-colors rounded"
-                            >
-                              <Trash2 size={15} />
-                            </button>
+                            {isAdmin && (
+                              <button
+                                onClick={() => requestDelete([t.verification_id])}
+                                title="Delete transcript"
+                                className="p-1 text-gray-300 hover:text-red-500 transition-colors rounded"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
