@@ -7,10 +7,10 @@ export function Layout() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen" style={{ background: '#e8edf6' }}>
         <div
           className="w-10 h-10 rounded-full border-4 border-transparent animate-spin"
-          style={{ borderTopColor: '#628ff2' }}
+          style={{ borderTopColor: '#1a3a6b' }}
         />
       </div>
     );
@@ -19,7 +19,7 @@ export function Layout() {
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen" style={{ background: '#e8edf6' }}>
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <Outlet />

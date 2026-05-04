@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
-import { ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { Spinner } from '../components/Spinner';
+import msbnLogo from '../assets/msbn-logo.png';
 
 export function Login() {
   const { isAuthenticated, login } = useAuth();
@@ -30,29 +31,44 @@ export function Login() {
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4"
-      style={{ background: 'linear-gradient(135deg, #e8f4ff 0%, #d6e8ff 50%, #c8daff 100%)' }}
+      style={{ background: '#e8edf6' }}
     >
-      <div className="w-full max-w-md">
-        {/* Brand header */}
+
+      <div className="w-full max-w-md relative z-10">
+
+        {/* Logo block */}
         <div className="text-center mb-8">
           <div
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl shadow-lg mb-4"
-            style={{ background: 'linear-gradient(0deg, #7bc2fa 0%, #628ff2 100%)' }}
+            className="inline-flex items-center justify-center px-8 py-5 mb-4 rounded-2xl"
+            style={{ background: '#d0daea' }}
           >
-            <ShieldCheck className="text-white" size={32} strokeWidth={2} />
+            <img
+              src={msbnLogo}
+              alt="Mississippi Board of Nursing"
+              className="h-14 w-auto object-contain"
+              style={{ mixBlendMode: 'multiply' }}
+            />
           </div>
-          <h1 className="text-3xl font-bold text-brand-900">MSBN Portal</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Mississippi State Board of Nursing
-          </p>
-          <p className="text-gray-400 text-xs mt-0.5">
+          <p
+            className="text-sm tracking-widest uppercase font-medium mt-1"
+            style={{ color: '#8a9bb5', letterSpacing: '0.18em' }}
+          >
             Transcript Verification System
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-brand-100">
-          <h2 className="text-xl font-semibold text-gray-800 mb-6">Sign in to your account</h2>
+        <div
+          className="rounded-2xl p-8"
+          style={{
+            background: 'rgba(255,255,255,0.97)',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.35), 0 4px 16px rgba(0,0,0,0.2)',
+          }}
+        >
+          <h2 className="text-xl font-bold mb-1" style={{ color: '#0f2347' }}>
+            Sign in to your account
+          </h2>
+          <p className="text-sm text-gray-400 mb-6">Enter your credentials to continue</p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -97,7 +113,8 @@ export function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full flex items-center justify-center gap-2 py-2.5"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-semibold text-white transition-opacity disabled:opacity-60"
+              style={{ background: 'linear-gradient(135deg, #1a3a6b 0%, #2563b0 100%)', boxShadow: '0 4px 14px rgba(26,58,107,0.4)' }}
             >
               {loading ? <Spinner size={18} /> : null}
               {loading ? 'Signing in…' : 'Sign in'}
@@ -109,6 +126,11 @@ export function Login() {
             <br />Contact your administrator for account creation.
           </p>
         </div>
+
+        {/* Footer */}
+        <p className="text-center mt-6 text-xs" style={{ color: '#8a9bb5' }}>
+          © {new Date().getFullYear()} Mississippi Board of Nursing. All rights reserved.
+        </p>
       </div>
     </div>
   );
