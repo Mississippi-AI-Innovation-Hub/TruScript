@@ -10,6 +10,8 @@ class ListTranscriptsUseCase:
     def __init__(self, repository: TranscriptRepository) -> None:
         self._repo = repository
 
-    async def execute(self, skip: int = 0, limit: int = 20) -> list[TranscriptResponseDTO]:
-        entities = await self._repo.list_all(skip=skip, limit=limit)
-        return [_to_response_dto(e) for e in entities]
+    async def execute(
+        self, skip: int = 0, limit: int = 20
+    ) -> tuple[list[TranscriptResponseDTO], int]:
+        total, entities = await self._repo.count_all(), await self._repo.list_all(skip=skip, limit=limit)
+        return [_to_response_dto(e) for e in entities], total

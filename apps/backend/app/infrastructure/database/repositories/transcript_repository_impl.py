@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.entities.Transcript import TranscriptVerification
@@ -35,6 +35,12 @@ class SQLAlchemyTranscriptRepository(TranscriptRepository):
     async def get_by_id(self, verification_id: str) -> TranscriptVerification | None:
         model = await self._fetch_model(verification_id)
         return model.to_entity() if model else None
+
+    async def count_all(self) -> int:
+        result = await self._session.execute(
+            select(func.count()).select_from(TranscriptVerificationModel)
+        )
+        return result.scalar_one()
 
     async def list_all(
         self,
