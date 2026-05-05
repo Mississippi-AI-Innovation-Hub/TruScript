@@ -34,6 +34,7 @@ class FlagReview:
     flag_id: str = ""
     action: FlagReviewAction = FlagReviewAction.CONFIRM
     staff_user_id: str = ""
+    staff_user_name: str | None = None  # Display name resolved at creation time
     justification: str | None = None   # Required for OVERRIDE
     note: str | None = None            # Optional free-text remark
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -48,6 +49,7 @@ class FlagReview:
         verification_id: str,
         flag_id: str,
         staff_user_id: str,
+        staff_user_name: str | None = None,
         note: str | None = None,
     ) -> "FlagReview":
         return cls(
@@ -55,6 +57,7 @@ class FlagReview:
             flag_id=flag_id,
             action=FlagReviewAction.CONFIRM,
             staff_user_id=staff_user_id,
+            staff_user_name=staff_user_name,
             note=note,
         )
 
@@ -65,6 +68,7 @@ class FlagReview:
         flag_id: str,
         staff_user_id: str,
         justification: str,
+        staff_user_name: str | None = None,
         note: str | None = None,
     ) -> "FlagReview":
         return cls(
@@ -72,6 +76,7 @@ class FlagReview:
             flag_id=flag_id,
             action=FlagReviewAction.OVERRIDE,
             staff_user_id=staff_user_id,
+            staff_user_name=staff_user_name,
             justification=justification,
             note=note,
         )

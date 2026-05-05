@@ -137,7 +137,7 @@ async def login(body: LoginRequest) -> TokenResponse:
                 "client_secret": settings.keycloak_client_secret,
                 "username": body.username,
                 "password": body.password,
-                "scope": "openid",
+                "scope": "openid profile email",
             },
         )
 

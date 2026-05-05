@@ -112,6 +112,7 @@ export interface FlagReviewResponse {
   flag_id: string;
   action: string;
   staff_user_id: string;
+  staff_user_name: string | null;
   justification: string | null;
   note: string | null;
   created_at: string;

@@ -83,6 +83,7 @@ class StaffAnnotation:
     """Staff member's review note on a verification or flag."""
     annotation_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     staff_user_id: str = ""
+    staff_user_name: str | None = None  # Resolved from JWT at creation time
     note: str = ""
     overrides_flag_id: str | None = None   # If set, this annotation overrides a specific flag
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -200,11 +201,12 @@ class TranscriptVerification:
         self.annotations.append(annotation)
         self._touch()
 
-    def override(self, staff_user_id: str, justification: str) -> None:
+    def override(self, staff_user_id: str, justification: str, staff_user_name: str | None = None) -> None:
         """Staff manually overrides the AI recommendation."""
         self.status = VerificationStatus.OVERRIDDEN
         note = StaffAnnotation(
             staff_user_id=staff_user_id,
+            staff_user_name=staff_user_name,
             note=f"[OVERRIDE] {justification}",
         )
         self.annotations.append(note)

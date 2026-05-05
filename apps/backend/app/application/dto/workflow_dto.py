@@ -18,6 +18,7 @@ class ReviewFlagDTO:
     flag_id: str
     action: FlagReviewAction
     staff_user_id: str
+    staff_user_name: str | None = None  # Resolved from JWT at request time
     justification: str | None = None   # Required when action == OVERRIDE
     note: str | None = None
 
@@ -28,6 +29,7 @@ class AddAnnotationDTO:
     verification_id: str
     staff_user_id: str
     note: str
+    staff_user_name: str | None = None  # Resolved from JWT at request time
     overrides_flag_id: str | None = None
 
 
@@ -43,3 +45,4 @@ class FlagReviewResponseDTO:
     justification: str | None
     note: str | None
     created_at: datetime
+    staff_user_name: str | None = None
