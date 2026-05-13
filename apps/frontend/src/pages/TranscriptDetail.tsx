@@ -466,10 +466,10 @@ export function TranscriptDetail() {
     enabled: !!id,
   });
 
-  // Fetch ALL users (staff + admins) to resolve IDs → names
+  // Fetch users (staff + admins) to resolve IDs → names; /auth/staff is accessible to all roles
   const { data: staffList = [] } = useQuery({
-    queryKey: ['user-list'],
-    queryFn: () => authApi.listUsers(),
+    queryKey: ['staff-list'],
+    queryFn: () => authApi.listStaff(),
     staleTime: 5 * 60 * 1000,
   });
 
