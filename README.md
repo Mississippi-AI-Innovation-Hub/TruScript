@@ -33,8 +33,6 @@ Staff upload nursing school transcripts → AWS Textract + Rekognition analyze t
 | API | https://msbn-dev-alb-2055778124.us-east-1.elb.amazonaws.com/api/v1/ |
 | API Docs | `/api/v1/docs` |
 
-Default credentials: `staff_user / StaffPass1!` · `admin_user / AdminPass1!`
-
 ---
 
 ## Quick Deploy
@@ -95,7 +93,6 @@ msbn/
 - Keycloak is single-instance (not HA)
 - No CI/CD — deployments are manual
 
-See [`MSBN_Project_Closeout.docx`](./MSBN_Project_Closeout.docx) for full documentation.
 
 ---
 
