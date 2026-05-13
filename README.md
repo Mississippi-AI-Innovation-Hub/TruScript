@@ -1,6 +1,6 @@
 # MSBN Transcript Verification System
 
-AI-powered web application for the Mississippi Board of Nursing to automate nursing school transcript review. Built by **Team Bully Protocol** at Mississippi State University — AWS Innovation Hub, Spring 2026.
+AI-powered web application for the Mississippi Board of Nursing to automate nursing school transcript review. Built by **Team TruScript** at Mississippi State University — AWS Innovation Hub, Spring 2026.
 
 > **PoC Notice:** This is a functional prototype, not a production system.
 
@@ -96,4 +96,4 @@ msbn/
 
 ---
 
-**Team Bully Protocol** · Mississippi State University · AWS Innovation Hub · Spring 2026
+**Team TruScript** · Mississippi State University · AWS Innovation Hub · Spring 2026
