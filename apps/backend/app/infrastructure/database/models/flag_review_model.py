@@ -32,6 +32,7 @@ class FlagReviewModel(Base):
     flag_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     action: Mapped[str] = mapped_column(String(20), nullable=False)
     staff_user_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    staff_user_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     justification: Mapped[str | None] = mapped_column(Text, nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -50,6 +51,7 @@ class FlagReviewModel(Base):
             flag_id=entity.flag_id,
             action=entity.action.value,
             staff_user_id=entity.staff_user_id,
+            staff_user_name=entity.staff_user_name,
             justification=entity.justification,
             note=entity.note,
             created_at=entity.created_at,
@@ -62,6 +64,7 @@ class FlagReviewModel(Base):
             flag_id=self.flag_id,
             action=FlagReviewAction(self.action),
             staff_user_id=self.staff_user_id,
+            staff_user_name=self.staff_user_name,
             justification=self.justification,
             note=self.note,
             created_at=self.created_at,

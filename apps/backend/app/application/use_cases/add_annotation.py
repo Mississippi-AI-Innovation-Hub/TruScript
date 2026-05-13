@@ -26,6 +26,7 @@ class AddAnnotationUseCase:
 
         annotation = StaffAnnotation(
             staff_user_id=dto.staff_user_id,
+            staff_user_name=dto.staff_user_name,
             note=dto.note,
             overrides_flag_id=dto.overrides_flag_id,
         )

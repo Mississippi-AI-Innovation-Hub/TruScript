@@ -16,7 +16,7 @@ export const transcriptsApi = {
   create: (data: TranscriptCreateRequest) =>
     apiClient.post<TranscriptResponse>('/api/v1/transcripts', data).then((r) => r.data),
 
-  list: (skip = 0, limit = 20) =>
+  list: (skip = 0, limit = 15) =>
     apiClient
       .get<TranscriptListResponse>('/api/v1/transcripts', { params: { skip, limit } })
       .then((r) => r.data),
