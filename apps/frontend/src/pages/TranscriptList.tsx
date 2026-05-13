@@ -21,7 +21,7 @@ import { StatusBadge } from '../components/StatusBadge';
 import { PageHeader } from '../components/PageHeader';
 import { Spinner } from '../components/Spinner';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 15;
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {

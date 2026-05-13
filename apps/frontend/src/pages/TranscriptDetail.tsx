@@ -466,7 +466,7 @@ export function TranscriptDetail() {
     enabled: !!id,
   });
 
-  // Fetch staff to resolve IDs → names
+  // Fetch users (staff + admins) to resolve IDs → names; /auth/staff is accessible to all roles
   const { data: staffList = [] } = useQuery({
     queryKey: ['staff-list'],
     queryFn: () => authApi.listStaff(),
@@ -799,9 +799,15 @@ export function TranscriptDetail() {
                 sev === 'warning'  ? 'bg-amber-100 text-amber-700' :
                                      'bg-blue-100 text-blue-700';
 
+              const isActive = reviewFlagId === flagId && reviewAction !== null;
+              const reviewerName = reviewed
+                ? (reviewed.staff_user_name ?? staffMap.get(reviewed.staff_user_id) ?? reviewed.staff_user_id)
+                : null;
+
               return (
-                <div key={flagId ?? idx} className={`border rounded-lg p-4 ${borderBg}`}>
-                  <div className="flex items-start justify-between gap-2">
+                <div key={flagId ?? idx} className={`border rounded-lg overflow-hidden ${borderBg}`}>
+                  {/* Flag header */}
+                  <div className="flex items-start justify-between gap-2 p-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className={`text-xs font-bold uppercase px-1.5 py-0.5 rounded ${badgeColor}`}>
@@ -825,23 +831,88 @@ export function TranscriptDetail() {
                       }`}>
                         {reviewed.action === 'confirm' ? '✓ Confirmed' : '↩ Overridden'}
                       </span>
-                    ) : (
+                    ) : !isActive ? (
                       <div className="flex gap-2 flex-shrink-0">
                         <button
-                          onClick={() => { setReviewFlagId(flagId); setReviewAction('confirm'); }}
+                          onClick={() => { setReviewFlagId(flagId); setReviewAction('confirm'); setReviewJustification(''); }}
                           className="text-xs bg-red-600 text-white px-2.5 py-1 rounded-lg hover:bg-red-700 flex items-center gap-1"
                         >
                           <CheckCircle size={12} /> Confirm
                         </button>
                         <button
-                          onClick={() => { setReviewFlagId(flagId); setReviewAction('override'); }}
-                          className="text-xs bg-white border border-red-300 text-red-700 px-2.5 py-1 rounded-lg hover:bg-red-50 flex items-center gap-1"
+                          onClick={() => { setReviewFlagId(flagId); setReviewAction('override'); setReviewJustification(''); }}
+                          className="text-xs bg-white border border-gray-300 text-gray-700 px-2.5 py-1 rounded-lg hover:bg-gray-50 flex items-center gap-1"
                         >
                           <XCircle size={12} /> Override
                         </button>
                       </div>
-                    )}
+                    ) : null}
                   </div>
+
+                  {/* Inline review result — justification shown directly on flag */}
+                  {reviewed && reviewed.justification && (
+                    <div className="px-4 pb-3">
+                      <div className="bg-white/70 border border-purple-200 rounded-lg px-3 py-2">
+                        <p className="text-xs font-semibold text-purple-700 mb-0.5">Override Justification</p>
+                        <p className="text-xs text-gray-700">{reviewed.justification}</p>
+                        <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                          <User size={10} />
+                          {reviewerName} · {formatDateTime(reviewed.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {reviewed && reviewed.action === 'confirm' && (
+                    <div className="px-4 pb-3">
+                      <p className="text-xs text-gray-400 flex items-center gap-1">
+                        <User size={10} />
+                        Confirmed by {reviewerName} · {formatDateTime(reviewed.created_at)}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Inline confirm/override form — attached directly to this flag */}
+                  {isActive && (
+                    <div className="border-t border-gray-200 bg-white/80 px-4 py-3">
+                      <p className="text-xs font-semibold text-gray-700 mb-2">
+                        {reviewAction === 'confirm'
+                          ? '⚠ Confirm this flag as a genuine issue?'
+                          : '↩ Override this flag — provide a justification'}
+                      </p>
+                      {reviewAction === 'override' && (
+                        <textarea
+                          className="input resize-none text-sm mb-2"
+                          rows={2}
+                          placeholder="Explain why this flag should be dismissed…"
+                          value={reviewJustification}
+                          onChange={(e) => setReviewJustification(e.target.value)}
+                          autoFocus
+                        />
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => reviewMutation.mutate()}
+                          disabled={
+                            reviewMutation.isPending ||
+                            (reviewAction === 'override' && !reviewJustification.trim())
+                          }
+                          className={`text-xs px-3 py-1.5 rounded-lg font-semibold text-white flex items-center gap-1 disabled:opacity-50 ${
+                            reviewAction === 'confirm' ? 'bg-red-600 hover:bg-red-700' : 'bg-purple-600 hover:bg-purple-700'
+                          }`}
+                        >
+                          {reviewMutation.isPending ? <Spinner size={12} /> : null}
+                          {reviewAction === 'confirm' ? 'Yes, Confirm Flag' : 'Submit Override'}
+                        </button>
+                        <button
+                          onClick={() => { setReviewAction(null); setReviewFlagId(''); setReviewJustification(''); }}
+                          className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -849,45 +920,6 @@ export function TranscriptDetail() {
         </SectionBox>
       )}
 
-      {/* Inline flag review form */}
-      {reviewAction && (
-        <div className="card mb-4 border-brand-200">
-          <h3 className="font-semibold text-gray-800 text-sm mb-3">
-            {reviewAction === 'confirm' ? 'Confirm Flag' : 'Override Flag'}
-          </h3>
-          {reviewAction === 'override' && (
-            <div className="mb-3">
-              <label className="label">Justification (required)</label>
-              <textarea
-                className="input resize-none"
-                rows={3}
-                placeholder="Explain why this flag is being dismissed…"
-                value={reviewJustification}
-                onChange={(e) => setReviewJustification(e.target.value)}
-              />
-            </div>
-          )}
-          <div className="flex gap-2">
-            <button
-              onClick={() => reviewMutation.mutate()}
-              disabled={
-                reviewMutation.isPending ||
-                (reviewAction === 'override' && !reviewJustification.trim())
-              }
-              className="btn-primary text-xs py-2 px-4 flex items-center gap-1"
-            >
-              {reviewMutation.isPending ? <Spinner size={14} /> : null}
-              Submit {reviewAction === 'confirm' ? 'Confirmation' : 'Override'}
-            </button>
-            <button
-              onClick={() => { setReviewAction(null); setReviewJustification(''); }}
-              className="btn-secondary text-xs py-2 px-4"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Annotations */}
       <SectionBox title="Annotations & Justifications" icon={MessageSquare}>
@@ -898,7 +930,7 @@ export function TranscriptDetail() {
             {transcript.annotations.map((a, i) => {
               const ann = a as Record<string, unknown>;
               const authorId = ann.staff_user_id as string;
-              const authorName = staffMap.get(authorId) ?? authorId;
+              const authorName = (ann.staff_user_name as string | null) ?? staffMap.get(authorId) ?? authorId;
               return (
                 <div key={i} className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm">
                   <p className="text-gray-800">{String(ann.note ?? '')}</p>
@@ -940,21 +972,25 @@ export function TranscriptDetail() {
         <SectionBox title="Audit Trail — Flag Reviews" icon={ClipboardList} defaultOpen={false}>
           <div className="space-y-2">
             {reviews.map((r) => {
-              const reviewerName = staffMap.get(r.staff_user_id) ?? r.staff_user_id;
+              const reviewerName = r.staff_user_name ?? staffMap.get(r.staff_user_id) ?? r.staff_user_id;
+              const relatedFlag = flags.find((f) => f.flag_id === r.flag_id);
+              const flagLabel = relatedFlag
+                ? (relatedFlag.rule_description as string)
+                : `Flag ${r.flag_id.slice(0, 8)}…`;
               return (
-                <div key={r.review_id} className="text-sm flex items-start gap-3 p-3 rounded-lg bg-gray-50">
-                  <span className={`mt-0.5 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                <div key={r.review_id} className="text-sm flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                  <span className={`mt-0.5 px-2 py-0.5 rounded-full text-xs font-semibold shrink-0 ${
                     r.action === 'confirm'
                       ? 'bg-red-100 text-red-700'
                       : 'bg-purple-100 text-purple-700'
                   }`}>
-                    {r.action}
+                    {r.action === 'confirm' ? '✓ Confirmed' : '↩ Overridden'}
                   </span>
-                  <div className="flex-1">
-                    <p className="text-gray-700">
-                      Flag <span className="font-mono text-xs">{r.flag_id.slice(0, 8)}…</span>
-                      {r.justification ? ` — ${r.justification}` : ''}
-                    </p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-gray-700 font-medium truncate" title={flagLabel}>{flagLabel}</p>
+                    {r.justification && (
+                      <p className="text-xs text-gray-500 mt-0.5 italic">"{r.justification}"</p>
+                    )}
                     <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
                       <User size={10} />
                       {reviewerName} · {formatDateTime(r.created_at)}

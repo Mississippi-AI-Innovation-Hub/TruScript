@@ -46,6 +46,7 @@ class ReviewFlagUseCase:
                 verification_id=dto.verification_id,
                 flag_id=dto.flag_id,
                 staff_user_id=dto.staff_user_id,
+                staff_user_name=dto.staff_user_name,
                 note=dto.note,
             )
         else:
@@ -54,6 +55,7 @@ class ReviewFlagUseCase:
                 verification_id=dto.verification_id,
                 flag_id=dto.flag_id,
                 staff_user_id=dto.staff_user_id,
+                staff_user_name=dto.staff_user_name,
                 justification=dto.justification or "",
                 note=dto.note,
             )
@@ -61,6 +63,7 @@ class ReviewFlagUseCase:
             transcript.override(
                 staff_user_id=dto.staff_user_id,
                 justification=dto.justification or "",
+                staff_user_name=dto.staff_user_name,
             )
             await self._transcript_repo.update(transcript)
 
@@ -107,6 +110,7 @@ def _to_dto(review: FlagReview) -> FlagReviewResponseDTO:
         flag_id=review.flag_id,
         action=review.action.value,
         staff_user_id=review.staff_user_id,
+        staff_user_name=review.staff_user_name,
         justification=review.justification,
         note=review.note,
         created_at=review.created_at,

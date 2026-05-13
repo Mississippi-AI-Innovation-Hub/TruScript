@@ -17,6 +17,7 @@ Endpoints:
 """
 from __future__ import annotations
 
+import asyncio
 from typing import Annotated, Any, Literal
 
 import httpx
@@ -137,7 +138,7 @@ async def login(body: LoginRequest) -> TokenResponse:
                 "client_secret": settings.keycloak_client_secret,
                 "username": body.username,
                 "password": body.password,
-                "scope": "openid",
+                "scope": "openid profile email",
             },
         )
 
@@ -251,12 +252,21 @@ async def list_users(
     search: str | None = Query(default=None, description="Filter by username, email, or name"),
     _: Annotated[dict, Security(get_current_user)] = None,
 ) -> list[UserResponse]:
-    users = await keycloak_admin.list_users(search=search)
-    result: list[UserResponse] = []
-    for u in users:
-        roles = await keycloak_admin.get_user_realm_roles(u["id"])
-        result.append(_to_user_response(u, roles))
-    return result
+    try:
+        users = await keycloak_admin.list_users(search=search)
+    except Exception:
+        # Keycloak admin unavailable — return empty list so UI degrades gracefully
+        return []
+
+    async def _fetch_roles(user_id: str) -> list[str]:
+        try:
+            return await keycloak_admin.get_user_realm_roles(user_id)
+        except Exception:
+            return []
+
+    # Fetch all role lists concurrently instead of sequentially
+    roles_list = await asyncio.gather(*[_fetch_roles(u["id"]) for u in users])
+    return [_to_user_response(u, roles) for u, roles in zip(users, roles_list)]
 
 
 @router.get(
@@ -283,17 +293,22 @@ async def list_staff(
         # Keycloak not yet configured — return a deterministic mock list for demo
         return _mock_staff_list()
 
-    result: list[UserResponse] = []
-    for u in users:
-        if not u.get("enabled", True):
-            continue
+    enabled_users = [u for u in users if u.get("enabled", True)]
+
+    async def _fetch_roles_safe(user_id: str) -> list[str]:
         try:
-            roles = await keycloak_admin.get_user_realm_roles(u["id"])
+            return await keycloak_admin.get_user_realm_roles(user_id)
         except Exception:
-            roles = []
-        msbn_roles = [r for r in roles if r.startswith("msbn-")]
-        if msbn_roles:
-            result.append(_to_user_response(u, roles))
+            return []
+
+    # Fetch all role lists concurrently
+    roles_list = await asyncio.gather(*[_fetch_roles_safe(u["id"]) for u in enabled_users])
+
+    result: list[UserResponse] = [
+        _to_user_response(u, roles)
+        for u, roles in zip(enabled_users, roles_list)
+        if any(r.startswith("msbn-") for r in roles)
+    ]
 
     # If Keycloak returned no users (realm not yet bootstrapped), fall back to mocks
     return result if result else _mock_staff_list()
