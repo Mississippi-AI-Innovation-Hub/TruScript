@@ -24,6 +24,45 @@ Staff upload nursing school transcripts → AWS Textract + Rekognition analyze t
 | Infrastructure | Terraform (us-east-1) |
 
 ---
+## Terraform Variables Setup
+
+This project uses a `terraform.tfvars` file to store environment-specific configuration values (such as project IDs, region names, credentials, or resource settings).
+
+For security reasons, `terraform.tfvars` is **not included** in the repository because it may contain sensitive information.
+
+Instead, a template file is provided:
+
+```bash
+terraform.tfvars.example
+```
+
+### How to use
+
+1. Copy the example file and create your local Terraform variables file:
+
+```bash
+cp terraform.tfvars.example terraform.tfvars
+```
+
+2. Open `terraform.tfvars` and update the values based on your environment.
+
+3. Run Terraform commands normally:
+
+```bash
+terraform init
+terraform plan
+terraform apply
+```
+
+### Why `terraform.tfvars` is ignored
+
+- Cloud credentials
+- API keys
+- Project-specific configuration
+- Sensitive deployment settings
+
+Only the `terraform.tfvars.example` template is tracked in Git so others can easily set up their own local configuration.
+---
 
 ## Quick Deploy
 
@@ -86,9 +125,9 @@ msbn/
 
 ---
 
-## Project Document
+## Deployment Manual
 
-[📄 View PDF Documentation](DeploymentManual.pdf)
+[View Manual](DeploymentManual.pdf)
 
 ---
 
