@@ -25,16 +25,6 @@ Staff upload nursing school transcripts → AWS Textract + Rekognition analyze t
 
 ---
 
-## Live (Dev)
-
-| | URL |
-|---|---|
-| Frontend | https://dbejm0k2ogvgf.cloudfront.net |
-| API | https://msbn-dev-alb-2055778124.us-east-1.elb.amazonaws.com/api/v1/ |
-| API Docs | `/api/v1/docs` |
-
----
-
 ## Quick Deploy
 
 ```bash
@@ -93,6 +83,12 @@ msbn/
 - Keycloak is single-instance (not HA)
 - No CI/CD — deployments are manual
 
+
+---
+
+## Project Document
+
+[📄 View PDF Documentation](DeploymentManual.pdf)
 
 ---
 
